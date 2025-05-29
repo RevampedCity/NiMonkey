@@ -912,22 +912,23 @@ local function teleportTo(position)
 	end
 end
 
--- Dupe logic
+-- Dupe logic variables
 local isOnCooldown = false
 local autoDupeEnabled = false
 local autoDupeTask
 local storedTool = nil
-local AUTO_DUPE_COOLDOWN = 35
 
 local function performDupe(tool)
+	tool = tool or (player.Character and player.Character:FindFirstChildOfClass("Tool"))
 	if not tool then
-		warn("[Revamped City] No tool equipped for dupe.")
-		return
+		warn("[Revamped City] No gun equipped for dupe.")
+		return false
 	end
 
 	local toolName = tool.Name
-	local character = player.Character or player.CharacterAdded:Wait()
-	local hrp = character:FindFirstChild("HumanoidRootPart")
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return false end
+
 	local backpack = player:WaitForChild("Backpack")
 	local safes = workspace["1# Map"]["2 Crosswalks"].Safes:GetChildren()
 	local closestSafe, closestClicker, shortestDistance = nil, nil, math.huge
@@ -946,7 +947,7 @@ local function performDupe(tool)
 
 	if not closestSafe or not closestClicker then
 		warn("[Revamped City] No nearby safe with ChestClicker found.")
-		return
+		return false
 	end
 
 	tool.Parent = backpack
@@ -965,6 +966,8 @@ local function performDupe(tool)
 		Text = "Duped item stored!",
 		Duration = 2
 	})
+
+	return true
 end
 
 local function startCooldown(seconds)
@@ -981,67 +984,30 @@ local function startCooldown(seconds)
 	hideCooldownUI()
 end
 
--- Manual Dupe function waits for tool, then dupes once
-local function manualDupe()
-	if isOnCooldown then
-		warn("[Revamped City] Dupe is on cooldown.")
-		return
-	end
-	game.StarterGui:SetCore("SendNotification", {
-		Title = "[Revamped City]",
-		Text = "Waiting for you to hold a tool...",
-		Duration = 3
-	})
-	while true do
-		local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-		if tool then
-			performDupe(tool)
-			startCooldown(AUTO_DUPE_COOLDOWN)
-			break
-		end
-		task.wait(0.2)
-	end
-end
-
--- AutoDupe task
-local function autoDupeLoop()
-	storedTool = nil
-	while autoDupeEnabled do
-		if not storedTool then
-			-- Wait until player holds a tool once, then store it
-			local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-			if tool then
-				storedTool = tool
-				game.StarterGui:SetCore("SendNotification", {
-					Title = "[Revamped City]",
-					Text = "AutoDupe tool stored: " .. tool.Name,
-					Duration = 3
-				})
-				-- Reset cooldown so immediate dupe happens
-				isOnCooldown = false
-			end
-		else
-			if not isOnCooldown and storedTool then
-				-- Auto equip the tool
-				if storedTool.Parent ~= player.Character then
-					storedTool.Parent = player.Character
-				end
-
-				performDupe(storedTool)
-				startCooldown(AUTO_DUPE_COOLDOWN)
-			end
-		end
-		task.wait(1)
-	end
-	storedTool = nil
-end
-
--- GUI Buttons
+-- Dupe button: one-time per click, waits for tool
 DupeSection:Button({
 	Text = "Dupe Gun",
-	Callback = manualDupe
+	Callback = function()
+		if isOnCooldown then
+			warn("[Revamped City] Dupe is on cooldown.")
+			return
+		end
+		local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+		if not tool then
+			warn("[Revamped City] Hold a gun to dupe.")
+			return
+		end
+
+		task.spawn(function()
+			local success = performDupe(tool)
+			if success then
+				startCooldown(35)
+			end
+		end)
+	end
 })
 
+-- AutoDupe toggle: waits for tool, then auto equips + dupes every 35 seconds
 DupeSection:Toggle({
 	Text = "AutoDupe",
 	Callback = function(state)
@@ -1049,15 +1015,41 @@ DupeSection:Toggle({
 
 		if autoDupeEnabled then
 			warn("[Revamped City] AutoDupe Enabled")
-			autoDupeTask = task.spawn(autoDupeLoop)
+			task.spawn(function()
+				storedTool = nil
+				while autoDupeEnabled do
+					if not storedTool then
+						local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+						if tool then
+							storedTool = tool
+							game.StarterGui:SetCore("SendNotification", {
+								Title = "[Revamped City]",
+								Text = "AutoDupe tool stored: " .. tool.Name,
+								Duration = 3
+							})
+							isOnCooldown = false -- allow immediate dupe
+						end
+					else
+						if not isOnCooldown then
+							-- Auto equip tool before duping
+							if storedTool.Parent ~= player.Character then
+								storedTool.Parent = player.Character
+							end
+
+							local success = performDupe(storedTool)
+							if success then
+								startCooldown(35)
+							end
+						end
+					end
+					task.wait(1)
+				end
+				storedTool = nil
+			end)
 		else
 			warn("[Revamped City] AutoDupe Disabled")
-			if autoDupeTask then
-				task.cancel(autoDupeTask)
-				autoDupeTask = nil
-			end
-			hideCooldownUI()
 			storedTool = nil
+			hideCooldownUI()
 		end
 	end
 })
