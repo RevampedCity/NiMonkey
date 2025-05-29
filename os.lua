@@ -724,6 +724,116 @@
     end
     })
 
+-- Combat
+    -- Combat Tab --
+    local combatTab = Window:Tab({ Text = "Combat" })
+
+    -- Gun Mods Section --
+    local gunModsSection = combatTab:Section({ Text = "Gun Mods" })
+
+    local player = game.Players.LocalPlayer
+
+    local function getToolSettings()
+	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+	if tool then
+		local success, settings = pcall(function()
+			return require(tool:FindFirstChild("Setting"))
+		end)
+		if success and type(settings) == "table" then
+			return settings
+		else
+			warn("Could not require settings from tool.")
+		end
+	else
+		warn("No tool found in character.")
+	end
+	return nil
+    end
+
+    local function setInfiniteAmmo(state)
+	local settings = getToolSettings()
+	if settings then
+		if state then
+			settings.LimitedAmmoEnabled = false
+			settings.MaxAmmo = 9e9
+			settings.AmmoPerMag = 9e9
+			settings.Ammo = 9e9
+			print("Infinite Ammo enabled.")
+		else
+			print("Infinite Ammo disabled.")
+		end
+	end
+    end
+
+    local function setNoRecoil(state)
+	local settings = getToolSettings()
+	if settings then
+		if state then
+			settings.Recoil = 0
+			print("No Recoil enabled.")
+		else
+			print("No Recoil disabled.")
+		end
+	end
+    end
+
+    local function setFullAuto(state)
+	local settings = getToolSettings()
+	if settings then
+		if state then
+			settings.Auto = true
+			print("Full Auto enabled.")
+		else
+			print("Full Auto disabled.")
+		end
+	end
+    end
+
+    local function setInstantFire(state)
+	local settings = getToolSettings()
+	if settings then
+		if state then
+			settings.FireRate = 0
+			print("Instant Fire enabled.")
+		else
+			print("Instant Fire disabled.")
+		end
+	end
+    end
+
+    -- Add toggles to Gun Mods Section --
+    gunModsSection:Toggle({
+	Text = "Infinite Ammo",
+	State = false,
+	Callback = function(state)
+		setInfiniteAmmo(state)
+	end
+    })
+
+    gunModsSection:Toggle({
+	Text = "No Recoil",
+	State = false,
+	Callback = function(state)
+		setNoRecoil(state)
+	end
+    })
+
+    gunModsSection:Toggle({
+	Text = "Full Auto",
+	State = false,
+	Callback = function(state)
+		setFullAuto(state)
+	end
+    })
+
+    gunModsSection:Toggle({
+	Text = "Instant Fire",
+	State = false,
+	Callback = function(state)
+		setInstantFire(state)
+	end
+    })
+
 
 -- Recovery
     local recoveryTab = Window:Tab({ Text = "Recovery" })
