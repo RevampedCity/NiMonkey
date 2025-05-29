@@ -1,1 +1,14 @@
-
+[
+    {
+        "key": "Owner",
+        "clientId": "03F28BB1-1CF2-4617-8E17-52A74FD7EED5",
+        "username": "OwnerUsername",
+        "expirationDate": "2030-03-22"
+    },
+    {
+        "key": "pbjf",
+        "clientId": "B7B3FC50-37D2-4696-A025-E5F3F4A376F4",
+        "username": "Chill Guy",
+        "expirationDate": "2045-4-20"
+    }
+]
