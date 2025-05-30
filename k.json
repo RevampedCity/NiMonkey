@@ -6,22 +6,16 @@
         "expirationDate": "2030-03-22"
     },
     {
-        "key": "Tito",
+        "key": "Owner",
         "clientId": "03F28BB1-1CF2-4617-8E17-52A74FD7EED5",
-        "username": "Tito",
-        "expirationDate": "2045-03-22"
+        "username": "OwnerUsername",
+        "expirationDate": "2030-03-22"
     },
     {
-        "key": "Kapo",
-        "clientId": "51BB58AF-00C4-4CCB-B12D-E22103747CBE",
-        "username": "Kapo",
-        "expirationDate": "2045-03-22"
-    },
-    {
-        "key": "ChillGuy",
+        "key": "Chill",
         "clientId": "646C89DC-5FCC-41EE-8B8C-9A762E14",
-        "username": "Chill Guy",
-        "expirationDate": "2045-03-22"
+        "username": "OwnerUsername",
+        "expirationDate": "2030-03-22"
     },
     {
         "key": "Nigger",
