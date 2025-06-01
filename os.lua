@@ -1,6 +1,6 @@
 -- Load Library --
     local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/RevampedCity/Shaman-Library/refs/heads/main/Library'))()
-    local Window = Library:Window({ Text = "Revamped.City | 🐍THA BRONX 3🔪" })
+    local Window = Library:Window({ Text = "Tha Bronx 3 Services                                                                     #TB3K" })
 
 -- Player
 	local playerTab = Window:Tab({ Text = "Main" })
