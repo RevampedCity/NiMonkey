@@ -794,7 +794,7 @@ local function startSellingGuns()
                 if item:IsA("Tool") and not isExcluded(item.Name) then
                     sellItem(item.Name)
                     soldSomething = true
-                    task.wait(3.2)
+                    task.wait(3.3)
                 end
             end
             task.wait(0.1)
