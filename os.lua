@@ -1,6 +1,6 @@
 -- Load Library --
     local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/RevampedCity/Shaman-Library/refs/heads/main/Library'))()
-    local Window = Library:Window({ Text = "Tha Bronx 3 Services                                                                     #TB3K" })
+    local Window = Library:Window({ Text = "Tha Bronx 3 Services                       #TB3K" })
 
 -- Player
 	local playerTab = Window:Tab({ Text = "Main" })
@@ -742,7 +742,7 @@
     local DupeSection = recoveryTab:Section({ Text = "Dupe" })
     local player = game:GetService("Players").LocalPlayer
     local cooldownUI, cooldownLabel
-    local cooldownSeconds = 35
+    local cooldownSeconds = 22
     local function createCooldownUI()
 	if cooldownUI then return end
 	local screenGui = Instance.new("ScreenGui")
@@ -1855,7 +1855,7 @@
 	local function teleportTo(positionOrCFrame)
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-if not humanoid or not hrp then return end
+    if not humanoid or not hrp then return end
     setMovementEnabled(false)
     local sat = TriggerSeat()
     if sat then
@@ -1873,10 +1873,10 @@ if not humanoid or not hrp then return end
     if (hrp.Position - (typeof(positionOrCFrame) == "Vector3" and positionOrCFrame or positionOrCFrame.Position)).Magnitude > 10 then
         teleportTo(positionOrCFrame)
     end
-end
+    end
 
--- Helper to create teleport buttons using teleportTo
-local function createTeleportButtons(section, locations)
+    -- Helper to create teleport buttons using teleportTo
+    local function createTeleportButtons(section, locations)
     for _, loc in ipairs(locations) do
         section:Button({
             Text = loc.name,
@@ -1885,28 +1885,29 @@ local function createTeleportButtons(section, locations)
             end
         })
     end
-end
+    end
 
--- Safe Locations --
-local SafeSection = TeleportTab:Section({ Text = "Safe Locations" })
-local safeLocations = {
-    {name = "Open Field", position = Vector3.new(-1279, 253, -532)}
-}
-createTeleportButtons(SafeSection, safeLocations)
+    -- Safe Locations --
+    local SafeSection = TeleportTab:Section({ Text = "Safe Locations" })
+    local safeLocations = {
+    {name = "Open Field", position = Vector3.new(-1248, 256, -5431)},
+    {name = "Safe", position = Vector3.new(68517, 52942, -794)}
+    }
+    createTeleportButtons(SafeSection, safeLocations)
 
--- Gun Shops --
-local GunSection = TeleportTab:Section({ Text = "Gun Shops", Side = "Right" })
-local gunLocations = {
+    -- Gun Shops --
+    local GunSection = TeleportTab:Section({ Text = "Gun Shops", Side = "Right" })
+    local gunLocations = {
     {name = "Xotic Guns", position = Vector3.new(60823, 87609, -350)},
     {name = "Studio Guns", position = Vector3.new(72422, 128856, -1087)},
     {name = "The Gun Shop 1", position = Vector3.new(-201, 284, -795)},
     {name = "The Gun Shop 2", position = Vector3.new(-1014, 255, -1125)}
-}
-createTeleportButtons(GunSection, gunLocations)
+    }
+    createTeleportButtons(GunSection, gunLocations)
 
--- Shops --
-local ShopSection = TeleportTab:Section({ Text = "Shops" })
-local shopLocations = {
+    -- Shops --
+    local ShopSection = TeleportTab:Section({ Text = "Shops" })
+    local shopLocations = {
     {name = "Frozen", position = Vector3.new(-193, 284, -1171)},
     {name = "DeliStore", position = Vector3.new(-52, 283, -1053)},
     {name = "Dealership", position = Vector3.new(-387, 253, -1240)},
@@ -1926,12 +1927,12 @@ local shopLocations = {
     {name = "Gas Station 4", position = Vector3.new(-688, 255, -524)},
     {name = "Gas Station 5", position = Vector3.new(-1765, 253, -1249)},
     {name = "Gas Station 6", position = Vector3.new(-1446, 254, -3464)}
-}
-createTeleportButtons(ShopSection, shopLocations)
+    }
+    createTeleportButtons(ShopSection, shopLocations)
 
--- Apartments --
-local AptSection = TeleportTab:Section({ Text = "Apartments", Side = "Right" })
-local aptLocations = {
+    -- Apartments --
+    local AptSection = TeleportTab:Section({ Text = "Apartments", Side = "Right" })
+    local aptLocations = {
     {name = "Penthouse", position = Vector3.new(-115, 417, -545)},
     {name = "Apartment 1", position = Vector3.new(-77, 284, -740)},
     {name = "Apartment 2", position = Vector3.new(-1032, 253, -278)},
@@ -1942,12 +1943,12 @@ local aptLocations = {
     {name = "Tha Bronx Hotel", position = Vector3.new(-136, 283, -526)},
     {name = "Fashion Homes", position = Vector3.new(-579, 254, -486)},
     {name = "Hot & Cod", position = Vector3.new(-583, 253, -673)}
-}
-createTeleportButtons(AptSection, aptLocations)
+    }
+    createTeleportButtons(AptSection, aptLocations)
 
--- Jobs --
-local JobsSection = TeleportTab:Section({ Text = "Jobs" })
-local jobLocations = {
+    -- Jobs --
+    local JobsSection = TeleportTab:Section({ Text = "Jobs" })
+    local jobLocations = {
     {name = "Bank", position = Vector3.new(-203, 284, -1215)},
     {name = "Pawnshop", position = Vector3.new(-1052, 253, -817)},
     {name = "Money Wash", position = Vector3.new(-987, 254, -676)},
@@ -1960,12 +1961,12 @@ local jobLocations = {
     {name = "Laptop", position = Vector3.new(-1016, 254, -251)},
     {name = "Warehouse", position = Vector3.new(-1561, 258, -1174)},
     {name = "On Tha Radar", position = Vector3.new(93377, 14485, 566)}
-}
-createTeleportButtons(JobsSection, jobLocations)
+    }
+    createTeleportButtons(JobsSection, jobLocations)
 
--- Bronx Police --
-local BronxPoliceSection = TeleportTab:Section({ Text = "Bronx Police", Side = "Right" })
-local policeLocations = {
+    -- Bronx Police --
+    local BronxPoliceSection = TeleportTab:Section({ Text = "Bronx Police", Side = "Right" })
+    local policeLocations = {
     {name = "Police Station", position = Vector3.new(-1407, 255, -3125)},
     {name = "Prison", position = Vector3.new(-1183, 256, -3382)},
     {name = "Loadout Room", position = Vector3.new(-1436, 255, -3140)},
@@ -1975,12 +1976,12 @@ local policeLocations = {
     {name = "Interrogation Room", position = Vector3.new(-1369, 254, -3187)},
     {name = "FBI Room", position = Vector3.new(-1420, 255, -3207)},
     {name = "ESU Room", position = Vector3.new(-1446, 255, -3206)}
-}
-createTeleportButtons(BronxPoliceSection, policeLocations)
+    }
+    createTeleportButtons(BronxPoliceSection, policeLocations)
 
--- Maybe Coming Soon --
-local ComingSoonSection = TeleportTab:Section({ Text = "Maybe Coming Soon" })
-local comingSoonLocations = {
+    -- Maybe Coming Soon --
+    local ComingSoonSection = TeleportTab:Section({ Text = "Maybe Coming Soon" })
+    local comingSoonLocations = {
     {name = "End Of Map", position = Vector3.new(-1302, 253, -3532)},
     {name = "General Sales", position = Vector3.new(-1463, 255, -567)},
     {name = "???", position = Vector3.new(-1396, 262, -696)},
@@ -2003,12 +2004,12 @@ local comingSoonLocations = {
     {name = "99 Cents And Up", position = Vector3.new(-460, 254, -529)},
     {name = "Halal Meat", position = Vector3.new(-460, 253, -555)},
     {name = "Nail Salon", position = Vector3.new(-692, 254, -830)}
-}
-createTeleportButtons(ComingSoonSection, comingSoonLocations)
+    }
+    createTeleportButtons(ComingSoonSection, comingSoonLocations)
 
--- Roof Tops --
-local RoofSection = TeleportTab:Section({ Text = "Roof Tops", Side = "Right" })
-local roofLocations = {
+    -- Roof Tops --
+    local RoofSection = TeleportTab:Section({ Text = "Roof Tops", Side = "Right" })
+    local roofLocations = {
     {name = "Rooftop 1", position = Vector3.new(-1612, 477, -507)},
     {name = "Rooftop 2", position = Vector3.new(-1727, 408, -1173)},
     {name = "Rooftop 3", position = Vector3.new(-1635, 443, -263)},
@@ -2019,8 +2020,8 @@ local roofLocations = {
     {name = "Rooftop 8", position = Vector3.new(-119, 442, -516)},
     {name = "Rooftop 9", position = Vector3.new(-79, 398, -712)},
     {name = "Rooftop 10", position = Vector3.new(-181, 437, -1153)}
-}
-createTeleportButtons(RoofSection, roofLocations)
+    }
+    createTeleportButtons(RoofSection, roofLocations)
 
 --
 -- Shop --
