@@ -741,14 +741,14 @@
     local recoveryTab = Window:Tab({ Text = "Recovery" })
     local DupeSection = recoveryTab:Section({ Text = "Dupe" })
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterGui = game:GetService("StarterGui")
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local StarterGui = game:GetService("StarterGui")
 
-local keepGunsEnabled = false
+    local keepGunsEnabled = false
 
-local excludedItems = {
+        local excludedItems = {
     "Phone", "Fist", "Car Keys", "Gun Permit",
     ".UziMag", ".Bullets", "5.56", "7.62", ".9mm", 
     ".Extended", ".FNMag", ".MacMag", ".TecMag", ".Drum",
@@ -760,13 +760,13 @@ local excludedItems = {
     "BluGloves", "WhiteGloves", "BlackGloves",
     "PinkCamoGloves", "RedCamoGloves", "BluCamoGloves",
     "Water", "RawChicken"
-}
+        }
 
-local function normalize(str)
+    local function normalize(str)
     return str:lower():gsub("%W", "")
-end
+    end
 
-local function isExcluded(toolName)
+    local function isExcluded(toolName)
     local normTool = normalize(toolName)
     for _, excluded in ipairs(excludedItems) do
         if normalize(excluded) == normTool then
@@ -774,19 +774,19 @@ local function isExcluded(toolName)
         end
     end
     return false
-end
+    end
 
-local ListWeaponRemote = ReplicatedStorage:WaitForChild("ListWeaponRemote")
+    local ListWeaponRemote = ReplicatedStorage:WaitForChild("ListWeaponRemote")
 
-local function sellItem(itemName)
+    local function sellItem(itemName)
     local args = {
         [1] = itemName,
         [2] = 999999
     }
     ListWeaponRemote:FireServer(unpack(args))
-end
+    end
 
-local function startSellingGuns()
+    local function startSellingGuns()
     task.spawn(function()
         repeat
             local soldSomething = false
@@ -800,9 +800,9 @@ local function startSellingGuns()
             task.wait(0.1)
         until not soldSomething
     end)
-end
+    end
 
-local function showNotification(message)
+    local function showNotification(message)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
             Title = "Revamped.City",
@@ -810,16 +810,16 @@ local function showNotification(message)
             Duration = 5
         })
     end)
-end
+    end
 
-local function onDeath()
+    local function onDeath()
     wait(0)
     if keepGunsEnabled then
         startSellingGuns()
     end
-end
+    end
 
-local function onRespawn()
+    local function onRespawn()
     if keepGunsEnabled then
         keepGunsEnabled = false
         local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
@@ -831,24 +831,24 @@ local function onRespawn()
             end
         end
     end
-end
+    end
 
-LocalPlayer.CharacterAdded:Connect(function(character)
+    LocalPlayer.CharacterAdded:Connect(function(character)
     local humanoid = character:WaitForChild("Humanoid", 5)
     if humanoid then
         humanoid.Died:Connect(onDeath)
     end
     onRespawn()
-end)
+    end)
 
-if LocalPlayer.Character then
+    if LocalPlayer.Character then
     local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
     if humanoid then
         humanoid.Died:Connect(onDeath)
     end
-end
+    end
 
-local function setSpawn()
+    local function setSpawn()
     local character = LocalPlayer.Character
     if not character then return end
 
@@ -866,10 +866,10 @@ local function setSpawn()
     if lastPosition then
         newRoot.CFrame = lastPosition
     end
-end
+    end
 
--- Your button
-DupeSection:Button({
+    -- Your button
+    DupeSection:Button({
     Text = "Dupe Inventory",
     Callback = function()
         if not keepGunsEnabled then
@@ -880,7 +880,7 @@ DupeSection:Button({
             showNotification("Already enabled! It will reset on next respawn.")
         end
     end
-})
+    })
 
 
     local MoneySection = recoveryTab:Section({ Text = "Max Money", Side = "Right" })
@@ -1108,76 +1108,85 @@ DupeSection:Button({
     return closestPrompt
  	end
  	local function grabATM()
-    local hasDrillBackpack = player.Backpack:FindFirstChild("Drill") ~= nil
-    local isDrillEquipped = isHoldingTool("Drill")
-    local buyDrillPrompt = findPromptNearPosition("buy drill", drillLocation, 15)
-    if not hasDrillBackpack and not isDrillEquipped then
-    if buyDrillPrompt then
-    teleportTo(drillLocation)
-    if not firePromptWithHold(buyDrillPrompt) then
-    sexyNotification("❌ Failed to buy Drill", 2)
-    return false
-    end
-    task.wait(1.5)
-    else
-    sexyNotification("❌ No Drill to Buy Here!", 2)
-    return false
-    end
-    elseif hasDrillBackpack and not isDrillEquipped then
-    teleportTo(drillLocation)
-    if not equipTool("Drill") then
-    sexyNotification("❌ Couldn't equip Drill", 2)
-    return false
-    end
-    end
-    teleportTo(drillLocation)
-    local drillPrompt = findPromptNearPosition("drill", drillLocation, 15)
-    if not drillPrompt or not firePromptWithHold(drillPrompt) then
-    sexyNotification("❌ Drill interaction failed", 2)
-    return false
-    end
-    local atmPos, atmPrompt, atmPromptBasePart
-    for _, pos in ipairs(atmLocations) do
-    local prompt = findPromptNearPosition("atm", pos, 15)
-    if prompt then
-    atmPos = pos
-	atmPrompt = prompt
-    atmPromptBasePart = getPromptBasePart(prompt)
-    break
-    end
-    end
-    if not atmPrompt or not atmPromptBasePart then
-    sexyNotification("❌ No ATM Prompt Found", 2)
-    return false
-    end
-    teleportTo(atmPos)
-    if not firePromptWithHold(atmPrompt) then
-    sexyNotification("❌ Failed to fire ATM Prompt", 2)
-    teleportTo(roofPlacementLocation)
-    return false
-    end
-    teleportTo(roofPlacementLocation)
-    countdownNotification(62)
-    teleportTo(atmPromptBasePart.CFrame)
-    local checkPrompt = findPromptNearPosition("atm", atmPromptBasePart.Position, 15)
-    if not checkPrompt then
-    sexyNotification("😢 Someone Stole Your Safe :(", 3)
-    teleportTo(roofPlacementLocation)
-    return false
-    end
-    local pickupPrompt = findNearestPrompt("pick up")
-    if not pickupPrompt or not firePromptWithHold(pickupPrompt) then
-    sexyNotification("❌ Pickup Failed", 2)
-    teleportTo(roofPlacementLocation)
-    return false
-    end
-    if not hasTool("ATM") then
-    equipTool("ATM")
-    end
-    teleportTo(roofPlacementLocation)
-    sexyNotification("🛑 Drop the ATM to stop the script.", 5)
-    return true
- 	end
+	local hasDrillBackpack = player.Backpack:FindFirstChild("Drill") ~= nil
+	local isDrillEquipped = isHoldingTool("Drill")
+	local drillAlreadyOwned = hasDrillBackpack or isDrillEquipped
+
+	-- Only buy if we don't own it at all
+	if not drillAlreadyOwned then
+		local buyDrillPrompt = findPromptNearPosition("buy drill", drillLocation, 15)
+		if buyDrillPrompt then
+			teleportTo(drillLocation)
+			if not firePromptWithHold(buyDrillPrompt) then
+				sexyNotification("❌ Failed to buy Drill", 2)
+				return false
+			end
+			task.wait(1.5)
+		else
+			sexyNotification("❌ No Drill to Buy Here!", 2)
+			return false
+		end
+	end
+
+	-- Equip drill if not held
+	if not isDrillEquipped then
+		teleportTo(drillLocation)
+		if not equipTool("Drill") then
+			sexyNotification("❌ Couldn't equip Drill", 2)
+			return false
+		end
+	end
+
+	-- Now drill at ATM
+	local atmPos, atmPrompt, atmPromptBasePart
+	for _, pos in ipairs(atmLocations) do
+		local prompt = findPromptNearPosition("atm", pos, 15)
+		if prompt then
+			atmPos = pos
+			atmPrompt = prompt
+			atmPromptBasePart = getPromptBasePart(prompt)
+			break
+		end
+	end
+	if not atmPrompt or not atmPromptBasePart then
+		sexyNotification("❌ No ATM Prompt Found", 2)
+		return false
+	end
+
+	teleportTo(atmPos)
+	if not firePromptWithHold(atmPrompt) then
+		sexyNotification("❌ Failed to fire ATM Prompt", 2)
+		teleportTo(roofPlacementLocation)
+		return false
+	end
+
+	teleportTo(roofPlacementLocation)
+	countdownNotification(62)
+
+	teleportTo(atmPromptBasePart.CFrame)
+	local checkPrompt = findPromptNearPosition("atm", atmPromptBasePart.Position, 15)
+	if not checkPrompt then
+		sexyNotification("😢 Someone Stole Your Safe :(", 3)
+		teleportTo(roofPlacementLocation)
+		return false
+	end
+
+	local pickupPrompt = findNearestPrompt("pick up")
+	if not pickupPrompt or not firePromptWithHold(pickupPrompt) then
+		sexyNotification("❌ Pickup Failed", 2)
+		teleportTo(roofPlacementLocation)
+		return false
+	end
+
+	if not hasTool("ATM") then
+		equipTool("ATM")
+	end
+
+	teleportTo(roofPlacementLocation)
+	sexyNotification("🛑 Drop the ATM to stop the script.", 5)
+	return true
+end
+
  	ATMSection:Button({
     Text = "Grab A ATM",
     Callback = function()
