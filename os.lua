@@ -782,7 +782,7 @@
     })
 
 
--- Recovery
+-- Recovery 
     local recoveryTab = Window:Tab({ Text = "Recovery" })
     local DupeSection = recoveryTab:Section({ Text = "Dupe" })
 
@@ -962,31 +962,31 @@
     end
     end
     })
-local ATMSection = recoveryTab:Section({ Text = "Grab ATM", Side = "Right" })
-local player = game:GetService("Players").LocalPlayer
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+    local ATMSection = recoveryTab:Section({ Text = "Grab ATM", Side = "Right" })
+    local player = game:GetService("Players").LocalPlayer
+    local TweenService = game:GetService("TweenService")
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
 
-local atmLocations = {
+    local atmLocations = {
 	Vector3.new(-1012, 254, -1155),
 	Vector3.new(-720, 287, -791),
 	Vector3.new(-397, 254, -1108),
-}
-local drillLocation = Vector3.new(-396, 340, -562)
-local roofPlacementLocation = Vector3.new(-1254, 253, -5445)
+    }
+    local drillLocation = Vector3.new(-396, 340, -562)
+    local roofPlacementLocation = Vector3.new(-1254, 253, -5445)
 
-local autoGrabEnabled = false
-local autoGrabConnection = nil
-local movementDisabled = false
-local atmBusy = false
+    local autoGrabEnabled = false
+    local autoGrabConnection = nil
+    local movementDisabled = false
+    local atmBusy = false
 
--- Prevent movement if needed
-local function setMovementEnabled(enabled)
+    -- Prevent movement if needed
+    local function setMovementEnabled(enabled)
 	movementDisabled = not enabled
-end
+    end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if movementDisabled and not gameProcessed then
 		if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseMovement then
 			local blockedKeys = {
@@ -999,10 +999,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			end
 		end
 	end
-end)
+    end)
 
--- Utilities
-local function TriggerSeat()
+    -- Utilities
+    local function TriggerSeat()
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	if humanoid then
 		for _, obj in pairs(workspace:GetDescendants()) do
@@ -1013,9 +1013,9 @@ local function TriggerSeat()
 		end
 	end
 	return false
-end
+    end
 
-local function teleportTo(pos)
+    local function teleportTo(pos)
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not humanoid or not hrp then return end
@@ -1030,9 +1030,9 @@ local function teleportTo(pos)
 	if (hrp.Position - (typeof(pos) == "Vector3" and pos or pos.Position)).Magnitude > 10 then
 		teleportTo(pos)
 	end
-end
+    end
 
-local function sexyNotification(message, duration)
+    local function sexyNotification(message, duration)
 	local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 	screenGui.Name = "SexyNotification"
 	screenGui.ResetOnSpawn = false
@@ -1054,17 +1054,17 @@ local function sexyNotification(message, duration)
 	fadeOut:Play()
 	fadeOut.Completed:Wait()
 	screenGui:Destroy()
-end
+ end
 
-local function getPromptBasePart(prompt)
+    local function getPromptBasePart(prompt)
 	local current = prompt.Parent
 	while current and not current:IsA("BasePart") do
 		current = current.Parent
 	end
 	return current
-end
+    end
 
-local function findPromptNearPosition(filterText, position, maxDistance)
+    local function findPromptNearPosition(filterText, position, maxDistance)
 	maxDistance = maxDistance or 15
 	local closestPrompt, closestDistance = nil, math.huge
 	for _, obj in pairs(workspace:GetDescendants()) do
@@ -1084,9 +1084,9 @@ local function findPromptNearPosition(filterText, position, maxDistance)
 		end
 	end
 	return closestPrompt
-end
+    end
 
-local function firePromptWithHold(prompt)
+    local function firePromptWithHold(prompt)
 	if not prompt then return false end
 	if prompt.HoldDuration and prompt.HoldDuration > 0 then
 		prompt:InputHoldBegin()
@@ -1098,17 +1098,17 @@ local function firePromptWithHold(prompt)
 		fireproximityprompt(prompt, false)
 	end
 	return true
-end
+ end
 
-local function hasTool(toolName)
+ local function hasTool(toolName)
 	return player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
-end
+ end
 
-local function isHoldingTool(toolName)
+ local function isHoldingTool(toolName)
 	return player.Character and player.Character:FindFirstChild(toolName) ~= nil
-end
+ end
 
-local function equipTool(toolName)
+ local function equipTool(toolName)
 	local tool = player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
 	if tool and player.Character and player.Character:FindFirstChild("Humanoid") then
 		player.Character.Humanoid:EquipTool(tool)
@@ -1116,9 +1116,9 @@ local function equipTool(toolName)
 		return true
 	end
 	return false
-end
+ end
 
-local function countdownNotification(seconds)
+ local function countdownNotification(seconds)
 	local gui = Instance.new("ScreenGui", player.PlayerGui)
 	gui.Name = "CountdownNotification"
 	gui.ResetOnSpawn = false
@@ -1135,10 +1135,10 @@ local function countdownNotification(seconds)
 		task.wait(1)
 	end
 	gui:Destroy()
-end
+ end
 
--- Main Grab Function
-local function grabATM()
+ -- Main Grab Function
+ local function grabATM()
 	if atmBusy then return end
 	atmBusy = true
 
@@ -1207,22 +1207,22 @@ local function grabATM()
 	sexyNotification("✅ ATM Grab Complete", 3)
 	atmBusy = false
 	return true
-end
+ end
 
-ATMSection:Button({
+ ATMSection:Button({
 	Text = "Grab ATM",
 	Callback = function()
 		grabATM()
 	end,
-})
+ })
 
-local teleportedMimics = {}
-local ignoreHistory = false
-local safeZonePosition = Vector3.new(-1268, 253, -5439) -- Custom safe zone
+ local teleportedMimics = {}
+ local ignoreHistory = false
+ local safeZonePosition = Vector3.new(-1268, 253, -5439) -- Custom safe zone
 
 
--- Grab MimicATM button
-ATMSection:Button({
+ -- Grab MimicATM button
+ ATMSection:Button({
     Text = "Grab MimicATM",
     Callback = function()
         -- Gather all MimicATMs in workspace
@@ -1286,7 +1286,81 @@ ATMSection:Button({
             sexyNotification("❌ Failed to teleport to MimicATM", 3)
         end
     end
-})
+    })
+ 
+    local MarketSection = recoveryTab:Section({
+	Text = "Market",
+	Side = "Left"
+    })
+
+    -- Variables to store input
+    local selectedTool = ""
+    local selectedAmount = 1
+    local selectedPrice = 100
+
+    -- Input: Tool Name
+    MarketSection:Input({
+	Placeholder = "Enter Tool Name",
+	Flag = "ToolName",
+	Callback = function(text)
+		selectedTool = text
+	end
+    })
+
+    -- Input: Amount
+    MarketSection:Input({
+	Placeholder = "Enter Amount",
+	Flag = "SellAmount",
+	Callback = function(text)
+		local num = tonumber(text)
+		if num and num > 0 then
+			selectedAmount = num
+		else
+			selectedAmount = 1
+		end
+	end
+    })
+
+    -- Input: Price
+    MarketSection:Input({
+	Placeholder = "Enter Price",
+	Flag = "SellPrice",
+	Callback = function(text)
+		local num = tonumber(text)
+		if num and num >= 0 then
+			selectedPrice = num
+		else
+			selectedPrice = 100
+		end
+	end
+    })
+
+    -- Button: Sell
+    MarketSection:Button({
+	Text = "Sell Tool",
+	Tooltip = "Sells tool every 3.5 seconds.",
+	Callback = function()
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
+		local ListWeaponRemote = ReplicatedStorage:FindFirstChild("ListWeaponRemote")
+
+		if not ListWeaponRemote then
+			warn("ListWeaponRemote not found!")
+			return
+		end
+
+		if selectedTool ~= "" and selectedAmount > 0 and selectedPrice >= 0 then
+			task.spawn(function()
+				for i = 1, selectedAmount do
+					ListWeaponRemote:FireServer(selectedTool, selectedPrice)
+					print("Selling", selectedTool, "at $" .. selectedPrice)
+					task.wait(3.5)
+				end
+			end)
+		else
+			warn("Invalid tool name, amount, or price.")
+		end
+	end
+    })
 
 
     local bankSection = recoveryTab:Section({ Text = "Bank Options" })
