@@ -150,6 +150,8 @@
     local playerTab = Window:Tab({ Text = "Player" })
     local playerSection = playerTab:Section({ Text = "Player Options" })
     
+    
+    
     playerSection:Button({
     Text = "Unban Voice Chat",
     Description = "Attempts to rejoin Voice Chat",
@@ -1120,31 +1122,31 @@
         end
     end
     })
-local ATMSection = recoveryTab:Section({ Text = "ATM's Section" })
+ local ATMSection = recoveryTab:Section({ Text = "ATM's Section" })
 
-local player = game:GetService("Players").LocalPlayer
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+ local player = game:GetService("Players").LocalPlayer
+ local TweenService = game:GetService("TweenService")
+ local RunService = game:GetService("RunService")
+ local UserInputService = game:GetService("UserInputService")
 
-local atmLocations = {
+ local atmLocations = {
     Vector3.new(-1012, 254, -1155),
     Vector3.new(-720, 287, -791),
     Vector3.new(-397, 254, -1108),
-}
+ }
 
-local drillLocation = Vector3.new(-396, 340, -562)
-local roofPlacementLocation = Vector3.new(-78, 395, -715)
+ local drillLocation = Vector3.new(-396, 340, -562)
+ local roofPlacementLocation = Vector3.new(-78, 395, -715)
 
-local autoGrabEnabled = false
-local autoGrabConnection = nil
+ local autoGrabEnabled = false
+ local autoGrabConnection = nil
 
-local movementDisabled = false
-local function setMovementEnabled(enabled)
+ local movementDisabled = false
+ local function setMovementEnabled(enabled)
     movementDisabled = not enabled
-end
+ end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if movementDisabled and not gameProcessed then
         if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseMovement then
             local blockedKeys = {
@@ -1159,9 +1161,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             end
         end
     end
-end)
+ end)
 
-local function TriggerSeat()
+ local function TriggerSeat()
     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
     if humanoid then
         for _, obj in pairs(workspace:GetDescendants()) do
@@ -1172,9 +1174,9 @@ local function TriggerSeat()
         end
     end
     return false
-end
+ end
 
-local function teleportTo(positionOrCFrame)
+ local function teleportTo(positionOrCFrame)
     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not humanoid or not hrp then return end
@@ -1202,9 +1204,9 @@ local function teleportTo(positionOrCFrame)
     if (hrp.Position - (typeof(positionOrCFrame) == "Vector3" and positionOrCFrame or positionOrCFrame.Position)).Magnitude > 10 then
         teleportTo(positionOrCFrame)
     end
-end
+ end
 
-local function sexyNotification(message, duration)
+ local function sexyNotification(message, duration)
     local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
     screenGui.Name = "SexyNotification"
     screenGui.ResetOnSpawn = false
@@ -1231,17 +1233,17 @@ local function sexyNotification(message, duration)
     fadeOut.Completed:Wait()
 
     screenGui:Destroy()
-end
+ end
 
-local function getPromptBasePart(prompt)
+  local function getPromptBasePart(prompt)
     local current = prompt.Parent
     while current and not current:IsA("BasePart") do
         current = current.Parent
     end
     return current
-end
+ end
 
-local function findPromptNearPosition(filterText, position, maxDistance)
+ local function findPromptNearPosition(filterText, position, maxDistance)
     maxDistance = maxDistance or 15
     local closestPrompt = nil
     local closestDistance = math.huge
@@ -1264,9 +1266,9 @@ local function findPromptNearPosition(filterText, position, maxDistance)
     end
 
     return closestPrompt
-end
+ end
 
-local function firePromptWithHold(prompt)
+ local function firePromptWithHold(prompt)
     if not prompt then return false end
     if prompt.HoldDuration and prompt.HoldDuration > 0 then
         prompt:InputHoldBegin()
@@ -1278,17 +1280,17 @@ local function firePromptWithHold(prompt)
         fireproximityprompt(prompt, false)
     end
     return true
-end
+ end
 
-local function hasTool(toolName)
+ local function hasTool(toolName)
     return player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
-end
+ end
 
-local function isHoldingTool(toolName)
+ local function isHoldingTool(toolName)
     return player.Character and player.Character:FindFirstChild(toolName) ~= nil
-end
+ end
 
-local function equipTool(toolName)
+ local function equipTool(toolName)
     local tool = player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
     if tool and player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid:EquipTool(tool)
@@ -1296,9 +1298,9 @@ local function equipTool(toolName)
         return true
     end
     return false
-end
+ end
 
-local function countdownNotification(seconds)
+ local function countdownNotification(seconds)
     local gui = Instance.new("ScreenGui", player.PlayerGui)
     gui.Name = "CountdownNotification"
     gui.ResetOnSpawn = false
@@ -1317,9 +1319,9 @@ local function countdownNotification(seconds)
         task.wait(1)
     end
     gui:Destroy()
-end
+ end
 
-local function findNearestPrompt(filterText)
+ local function findNearestPrompt(filterText)
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
@@ -1345,9 +1347,9 @@ local function findNearestPrompt(filterText)
     end
 
     return closestPrompt
-end
+ end
 
-local function grabATM()
+ local function grabATM()
     local hasDrillBackpack = player.Backpack:FindFirstChild("Drill") ~= nil
     local isDrillEquipped = isHoldingTool("Drill")
 
@@ -1413,7 +1415,7 @@ local function grabATM()
     end
 
     teleportTo(roofPlacementLocation)
-    countdownNotification(58)
+    countdownNotification(62)
 
     -- Teleport back exactly to prompt base part CFrame
     teleportTo(atmPromptBasePart.CFrame)
@@ -1440,16 +1442,16 @@ local function grabATM()
     teleportTo(roofPlacementLocation)
     sexyNotification("🛑 Drop the ATM to stop the script.", 5)
     return true
-end
+ end
 
-ATMSection:Button({
+ ATMSection:Button({
     Text = "Grab A ATM",
     Callback = function()
         grabATM()
     end
-})
+ })
 
-ATMSection:Toggle({
+ ATMSection:Toggle({
     Text = "Auto Grab Safe",
     Default = false,
     Callback = function(state)
@@ -1472,7 +1474,7 @@ ATMSection:Toggle({
             end)
         end
     end
-})
+ })
 
 
     
@@ -2841,13 +2843,13 @@ ATMSection:Toggle({
 
 -- Troll --
     local TrollTab = Window:Tab({ Text = "Troll" })
-    local trollSection = TrollTab:Section({ Text = "Tweet" })
+    local twitterSection = TrollTab:Section({ Text = "Twitter" })
 
     -- Variable for Tweet message
     local tweetMessage = "Revamped.City"  -- Default tweet message
 
     -- Input box for tweet message (formatted as requested)
-    trollSection:Input({
+    twitterSection:Input({
     Text = "Tweet Message",
     Placeholder = "Enter your tweet message",
     Callback = function(value)
@@ -2859,8 +2861,8 @@ ATMSection:Toggle({
     local v108 = false
 
     -- Toggle for Annoying Server (Send repeated tweets)
-    trollSection:Toggle({
-    Text = "Annoy Server",
+    twitterSection:Toggle({
+    Text = "Spam Tweet",
     Description = "Send repeated tweets to annoy people in the server.",
     Default = false,
     Callback = function(toggleState)
@@ -2881,3 +2883,165 @@ ATMSection:Toggle({
         end
     end
     })
+
+
+
+
+    local spammingRepost = false
+    local spammingHeart = false
+
+    local function TwitterAll(Type)
+    for _, v in ipairs(game:GetService("Players").LocalPlayer.PlayerGui.Phone.Frame.Phone.Main.Twitter.ScrollingFrame:GetChildren()) do
+        if v:IsA("Frame") then
+            game:GetService("ReplicatedStorage"):WaitForChild("Resources"):WaitForChild("#Phone"):WaitForChild("Main"):FireServer(
+                "Tweet",
+                {[1] = Type, [2] = true, [3] = v.Name}
+            )
+        end
+    end
+    end
+
+    -- Toggle to spam Repost All
+    twitterSection:Toggle({
+    Text = "Spam Repost All",
+    Description = "Continuously repost all tweets.",
+    Default = false,
+    Callback = function(state)
+        spammingRepost = state
+        if spammingRepost then
+            spammingHeart = false -- Disable Heart spam if active
+            coroutine.wrap(function()
+                while spammingRepost do
+                    TwitterAll("Repost")
+                    wait(.2) -- Adjust delay as needed
+                end
+            end)()
+        end
+    end
+    })
+
+    -- Toggle to spam Heart All
+    twitterSection:Toggle({
+    Text = "Spam Heart All",
+    Description = "Continuously heart all tweets.",
+    Default = false,
+    Callback = function(state)
+        spammingHeart = state
+        if spammingHeart then
+            spammingRepost = false -- Disable Repost spam if active
+            coroutine.wrap(function()
+                while spammingHeart do
+                    TwitterAll("Liked")
+                    wait(.2) -- Adjust delay as needed
+                end
+            end)()
+        end
+    end
+    })
+
+ local messagesSection = TrollTab:Section({ Text = "Messages" })
+
+ -- Variables
+ local messageText = "hello"
+ local targetPlayerName = "Theyknowmyg"
+ local delayBetween = 2
+ local spamOne = false
+ local spamAll = false
+
+ -- Input: Message 
+ messagesSection:Input({
+    Text = "Message to Send",
+    Placeholder = "Enter your message here",
+    Callback = function(value)
+        messageText = value
+    end
+ })
+
+ -- Input: Target Player Name
+ messagesSection:Input({
+    Text = "Target Player Username",
+    Placeholder = "Exact username (case sensitive)",
+    Callback = function(value)
+        targetPlayerName = value
+    end
+ })
+
+ -- Slider: Delay between sends
+ messagesSection:Slider({
+    Text = "Delay Between Messages (Seconds)",
+    Min = 1,
+    Max = 10,
+    Default = 2,
+    Callback = function(value)
+        delayBetween = value
+    end
+ })
+
+ -- Toggle: Spam One Player
+ messagesSection:Toggle({
+    Text = "Spam Target Player",
+    Description = "Repeatedly sends message to the selected player.",
+    Default = false,
+    Callback = function(state)
+        spamOne = state
+        if spamOne then
+            spamAll = false
+            coroutine.wrap(function()
+                while spamOne do
+                    local target = game:GetService("Players"):FindFirstChild(targetPlayerName)
+                    if target then
+                        local args = {
+                            "Messaging",
+                            {
+                                "SentMessage",
+                                messageText,
+                                target
+                            }
+                        }
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Resources")
+                            :WaitForChild("#Phone")
+                            :WaitForChild("Main")
+                            :FireServer(unpack(args))
+                    end
+                    wait(delayBetween)
+                end
+            end)()
+        end
+    end
+ })
+
+ -- Toggle: Spam All Players
+ messagesSection:Toggle({
+    Text = "Spam All Players",
+    Description = "Sends message to all players one by one, repeatedly.",
+    Default = false,
+    Callback = function(state)
+        spamAll = state
+        if spamAll then
+            spamOne = false
+            coroutine.wrap(function()
+                while spamAll do
+                    for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+                        if player ~= game.Players.LocalPlayer then
+                            local args = {
+                                "Messaging",
+                                {
+                                    "SentMessage",
+                                    messageText,
+                                    player
+                                }
+                            }
+                            game:GetService("ReplicatedStorage")
+                                :WaitForChild("Resources")
+                                :WaitForChild("#Phone")
+                                :WaitForChild("Main")
+                                :FireServer(unpack(args))
+                            wait(delayBetween)
+                        end
+                    end
+                end
+            end)()
+        end
+    end
+ })
