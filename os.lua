@@ -235,103 +235,148 @@
     end)
     end
     end
-    })
-    playerSection:Toggle({
-    Text = "No Stamina",
-    Description = "Disables the stamina system permanently",
+        })
+        playerSection:Toggle({
+        Text = "No Stamina",
+        Description = "Disables the stamina system permanently",
+        Default = false,
+        Callback = function(state)
+        local function v154()
+        local player = game.Players.LocalPlayer
+        if player and player:FindFirstChild("PlayerGui") then
+        local stamina = player.PlayerGui:FindFirstChild("Run") and player.PlayerGui.Run:FindFirstChild("Frame") and
+        player.PlayerGui.Run.Frame:FindFirstChild("Frame") and
+        player.PlayerGui.Run.Frame.Frame:FindFirstChild("Frame") and
+        player.PlayerGui.Run.Frame.Frame.Frame:FindFirstChild("StaminaBarScript")
+        if stamina then
+        stamina.Disabled = true
+        end
+        end
+        end
+        if state then
+        task.spawn(function()
+            while state do
+        task.wait(1)
+        v154()
+        end
+        end)
+        end
+            end
+        })
+	    local player = game:GetService("Players").LocalPlayer
+        local function setupCharacter()
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoid = character:WaitForChild("Humanoid")
+        local hrp = character:WaitForChild("HumanoidRootPart")
+        return character, humanoid, hrp
+        end
+        -- No Fall Damage Toggle
+        playerSection:Toggle({
+            Text = "No Fall",
+        Description = "Disables Fall Damage",
+        Default = false,
+        Callback = function(state)
+        local function v150()
+        local player = game.Players.LocalPlayer
+        if player and player.Character then
+        local fallDamage = player.Character:FindFirstChild("FallDamageRagdoll")
+            if fallDamage then
+        fallDamage.Disabled = true
+        end
+        end
+            end
+        if state then
+        task.spawn(function()
+        while state do
+            task.wait(1)
+        v150()
+        end
+        end)
+        end
+        end
+        })
+        playerSection:Toggle({
+            Text = "No Jail",
+        State = false,
+        Callback = function(value)
+        local jailRemote = ReplicatedStorage:FindFirstChild("JailRemote")
+        if value then
+        if jailRemote then
+        jailRemote:Destroy()
+        end
+        end
+        end
+        })
+        local AntiRentPayEnabled = false
+        playerSection:Toggle({
+        Text = "No Rent Pay",
+        State = false,
+        Callback = function(value)
+        AntiRentPayEnabled = value
+        if value then
+        task.spawn(function()
+        while AntiRentPayEnabled do
+        task.wait(1)
+        local player = LocalPlayer
+        local rentGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("RentGui")
+        if rentGui then
+        local rentScript = rentGui:FindFirstChild("LocalScript")
+        if rentScript then
+        rentScript.Disabled = true
+        rentScript:Destroy()
+        end
+        end
+	    end
+	    end)
+	    end
+        end
+        })
+	    local respawnSection = playerTab:Section({ Text = "Respawn Options", Side = "Right" })
+
+
+    respawnSection:Toggle({
+    Text = "Respawn Where Died",
     Default = false,
     Callback = function(state)
-    local function v154()
-    local player = game.Players.LocalPlayer
-    if player and player:FindFirstChild("PlayerGui") then
-    local stamina = player.PlayerGui:FindFirstChild("Run") and player.PlayerGui.Run:FindFirstChild("Frame") and
-    player.PlayerGui.Run.Frame:FindFirstChild("Frame") and
-    player.PlayerGui.Run.Frame.Frame:FindFirstChild("Frame") and
-    player.PlayerGui.Run.Frame.Frame.Frame:FindFirstChild("StaminaBarScript")
-    if stamina then
-    stamina.Disabled = true
-    end
-    end
-    end
-    if state then
-    task.spawn(function()
-    while state do
-    task.wait(1)
-    v154()
-    end
-    end)
-    end
-    end
-    })
-	local player = game:GetService("Players").LocalPlayer
-    local function setupCharacter()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    local hrp = character:WaitForChild("HumanoidRootPart")
-    return character, humanoid, hrp
-    end
-    -- No Fall Damage Toggle
-    playerSection:Toggle({
-    Text = "No Fall",
-    Description = "Disables Fall Damage",
-    Default = false,
-    Callback = function(state)
-    local function v150()
-    local player = game.Players.LocalPlayer
-    if player and player.Character then
-    local fallDamage = player.Character:FindFirstChild("FallDamageRagdoll")
-    if fallDamage then
-    fallDamage.Disabled = true
-    end
-    end
-    end
-    if state then
-    task.spawn(function()
-    while state do
-    task.wait(1)
-    v150()
-    end
-    end)
-    end
+        if state then
+            local function setup()
+                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local humanoid = character:WaitForChild("Humanoid")
+                local root = character:WaitForChild("HumanoidRootPart")
+
+                if deathConnection then deathConnection:Disconnect() end
+                if respawnConnection then respawnConnection:Disconnect() end
+
+                deathConnection = humanoid.Died:Connect(function()
+                    if root then
+                        lastPosition = root.CFrame
+                    end
+                end)
+
+                respawnConnection = LocalPlayer.CharacterAdded:Connect(function(char)
+                    local newRoot = char:WaitForChild("HumanoidRootPart")
+                    if lastPosition then
+                        newRoot.CFrame = lastPosition
+                    end
+                    setup()
+                end)
+            end
+            setup()
+        else
+            if respawnConnection then
+                respawnConnection:Disconnect()
+                respawnConnection = nil
+            end
+            if deathConnection then
+                deathConnection:Disconnect()
+                deathConnection = nil
+            end
+            lastPosition = nil
+        end
     end
     })
-    playerSection:Toggle({
-    Text = "No Jail",
-    State = false,
-    Callback = function(value)
-    local jailRemote = ReplicatedStorage:FindFirstChild("JailRemote")
-    if value then
-    if jailRemote then
-    jailRemote:Destroy()
-    end
-    end
-    end
-    })
-    local AntiRentPayEnabled = false
-    playerSection:Toggle({
-    Text = "No Rent Pay",
-    State = false,
-    Callback = function(value)
-    AntiRentPayEnabled = value
-    if value then
-    task.spawn(function()
-    while AntiRentPayEnabled do
-    task.wait(1)
-    local player = LocalPlayer
-    local rentGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("RentGui")
-    if rentGui then
-    local rentScript = rentGui:FindFirstChild("LocalScript")
-    if rentScript then
-    rentScript.Disabled = true
-    rentScript:Destroy()
-    end
-    end
-	end
-	end)
-	end
-    end
-    })
-	local respawnSection = playerTab:Section({ Text = "Respawn Options", Side = "Right" })
+
+
     local lastPosition = nil
     respawnSection:Button({
     Text = "Set Spawn",
@@ -917,305 +962,334 @@
     end
     end
     })
- 	local ATMSection = recoveryTab:Section({ Text = "Grab ATM", Side = "Right" })
- 	local player = game:GetService("Players").LocalPlayer
- 	local TweenService = game:GetService("TweenService")
- 	local RunService = game:GetService("RunService")
- 	local UserInputService = game:GetService("UserInputService")
- 	local atmLocations = {
- 	Vector3.new(-1012, 254, -1155),
- 	Vector3.new(-720, 287, -791),
- 	Vector3.new(-397, 254, -1108),
- 	}
- 	local drillLocation = Vector3.new(-396, 340, -562)
- 	local roofPlacementLocation = Vector3.new(-78, 395, -715)
- 	local autoGrabEnabled = false
- 	local autoGrabConnection = nil
- 	local movementDisabled = false
- 	local function setMovementEnabled(enabled)
- 	movementDisabled = not enabled
- 	end
- 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
- 	if movementDisabled and not gameProcessed then
- 	if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseMovement then
- 	local blockedKeys = {
-    Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D,
-    Enum.KeyCode.Up, Enum.KeyCode.Down, Enum.KeyCode.Left, Enum.KeyCode.Right,
-    Enum.KeyCode.Space, Enum.KeyCode.LeftShift, Enum.KeyCode.LeftControl
-    }
-    for _, key in ipairs(blockedKeys) do
-    if input.KeyCode == key then
-    return
-    end
-    end
-	end
-    end
- 	end)
- 	local function TriggerSeat()
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    for _, obj in pairs(workspace:GetDescendants()) do
-    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-    obj:Sit(humanoid)
-    return true
-    end
-    end
-    end
-    return false
- 	end
- 	local function teleportTo(positionOrCFrame)
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not humanoid or not hrp then return end
-    setMovementEnabled(false)
-    local sat = TriggerSeat()
-    if sat then
-    task.wait(1)
-    end
-    if typeof(positionOrCFrame) == "Vector3" then
-    hrp.CFrame = CFrame.new(positionOrCFrame)
-    elseif typeof(positionOrCFrame) == "CFrame" then
-    hrp.CFrame = positionOrCFrame
-    end
-    task.wait(1)
-    humanoid.Sit = false
-    task.wait(1)
-    setMovementEnabled(true)
-    if (hrp.Position - (typeof(positionOrCFrame) == "Vector3" and positionOrCFrame or positionOrCFrame.Position)).Magnitude > 10 then
-    teleportTo(positionOrCFrame)
-    end
- 	end
- 	local function sexyNotification(message, duration)
-    local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-    screenGui.Name = "SexyNotification"
-    screenGui.ResetOnSpawn = false
-    local textLabel = Instance.new("TextLabel", screenGui)
-    textLabel.Size = UDim2.new(0.4, 0, 0.08, 0)
-    textLabel.Position = UDim2.new(0.3, 0, 0.9, 0)
-    textLabel.Text = message
-    textLabel.BackgroundTransparency = 1
-    textLabel.TextScaled = true
-    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textLabel.Font = Enum.Font.GothamBold
-    textLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    textLabel.BorderSizePixel = 0
-    local fadeIn = TweenService:Create(textLabel, TweenInfo.new(0.5), {BackgroundTransparency = 0.2, TextTransparency = 0})
-    fadeIn:Play()
-    fadeIn.Completed:Wait()
-    task.wait(duration or 2)
-    local fadeOut = TweenService:Create(textLabel, TweenInfo.new(0.5), {BackgroundTransparency = 1, TextTransparency = 1})
-    fadeOut:Play()
-    fadeOut.Completed:Wait()
-    screenGui:Destroy()
- 	end
-  	local function getPromptBasePart(prompt)
-    local current = prompt.Parent
-    while current and not current:IsA("BasePart") do
-    current = current.Parent
-    end
-    return current
- 	end
- 	local function findPromptNearPosition(filterText, position, maxDistance)
-    maxDistance = maxDistance or 15
-    local closestPrompt = nil
-    local closestDistance = math.huge
-    for _, obj in pairs(workspace:GetDescendants()) do
-    if obj:IsA("ProximityPrompt") and obj.Enabled then
-    local action = string.lower(obj.ActionText or "")
-    local object = string.lower(obj.ObjectText or "")
-    if string.find(action, filterText) or string.find(object, filterText) then
-    local part = getPromptBasePart(obj)
-    if part then
-    local dist = (part.Position - position).Magnitude
-    if dist <= maxDistance and dist < closestDistance then
-    closestDistance = dist
-    closestPrompt = obj
-    end
-    end
-    end
-    end
-    end
-    return closestPrompt
- 	end
- 	local function firePromptWithHold(prompt)
-    if not prompt then return false end
-    if prompt.HoldDuration and prompt.HoldDuration > 0 then
-    prompt:InputHoldBegin()
-    task.wait(prompt.HoldDuration)
-    prompt:InputHoldEnd()
-    else
-    fireproximityprompt(prompt, true)
-    task.wait(0.1)
-    fireproximityprompt(prompt, false)
-    end
-    return true
- 	end
- 	local function hasTool(toolName)
-    return player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
- 	end
- 	local function isHoldingTool(toolName)
-    return player.Character and player.Character:FindFirstChild(toolName) ~= nil
- 	end
- 	local function equipTool(toolName)
-    local tool = player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
-    if tool and player.Character and player.Character:FindFirstChild("Humanoid") then
-    player.Character.Humanoid:EquipTool(tool)
-    task.wait(0.3)
-    return true
-    end
-    return false
- 	end
- 	local function countdownNotification(seconds)
-    local gui = Instance.new("ScreenGui", player.PlayerGui)
-    gui.Name = "CountdownNotification"
-    gui.ResetOnSpawn = false
-    local label = Instance.new("TextLabel", gui)
-    label.Size = UDim2.new(0.4, 0, 0.08, 0)
-    label.Position = UDim2.new(0.3, 0, 0.9, 0)
-    label.BackgroundTransparency = 0.2
-    label.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.GothamBold
-    label.TextScaled = true
-    for i = seconds, 1, -1 do
-    label.Text = "⏳ " .. i .. "s remaining..."
-    task.wait(1)
-    end
-    gui:Destroy()
- 	end
- 	local function findNearestPrompt(filterText)
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-    local maxDistance = 15
-    local closestPrompt = nil
-    local closestDistance = math.huge
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") and obj.Enabled then
-    local action = string.lower(obj.ActionText or "")
-    local object = string.lower(obj.ObjectText or "")
-	if string.find(action, filterText) or string.find(object, filterText) then
-    local part = getPromptBasePart(obj)
-    if part then
-    local dist = (part.Position - root.Position).Magnitude
-    if dist <= maxDistance and dist < closestDistance then
-    closestDistance = dist
-    closestPrompt = obj
-    end
-    end
-    end
-    end
-    end
-    return closestPrompt
- 	end
- 	local function grabATM()
-	local hasDrillBackpack = player.Backpack:FindFirstChild("Drill") ~= nil
-	local isDrillEquipped = isHoldingTool("Drill")
-	local drillAlreadyOwned = hasDrillBackpack or isDrillEquipped
+local ATMSection = recoveryTab:Section({ Text = "Grab ATM", Side = "Right" })
+local player = game:GetService("Players").LocalPlayer
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
-	-- Only buy if we don't own it at all
-	if not drillAlreadyOwned then
-		local buyDrillPrompt = findPromptNearPosition("buy drill", drillLocation, 15)
-		if buyDrillPrompt then
+local atmLocations = {
+	Vector3.new(-1012, 254, -1155),
+	Vector3.new(-720, 287, -791),
+	Vector3.new(-397, 254, -1108),
+}
+local drillLocation = Vector3.new(-396, 340, -562)
+local roofPlacementLocation = Vector3.new(-1254, 253, -5445)
+
+local autoGrabEnabled = false
+local autoGrabConnection = nil
+local movementDisabled = false
+local atmBusy = false
+
+-- Prevent movement if needed
+local function setMovementEnabled(enabled)
+	movementDisabled = not enabled
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if movementDisabled and not gameProcessed then
+		if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseMovement then
+			local blockedKeys = {
+				Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D,
+				Enum.KeyCode.Up, Enum.KeyCode.Down, Enum.KeyCode.Left, Enum.KeyCode.Right,
+				Enum.KeyCode.Space, Enum.KeyCode.LeftShift, Enum.KeyCode.LeftControl
+			}
+			for _, key in ipairs(blockedKeys) do
+				if input.KeyCode == key then return end
+			end
+		end
+	end
+end)
+
+-- Utilities
+local function TriggerSeat()
+	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+	if humanoid then
+		for _, obj in pairs(workspace:GetDescendants()) do
+			if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+				obj:Sit(humanoid)
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function teleportTo(pos)
+	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not hrp then return end
+	setMovementEnabled(false)
+	if TriggerSeat() then task.wait(1) end
+	if typeof(pos) == "Vector3" then hrp.CFrame = CFrame.new(pos)
+	elseif typeof(pos) == "CFrame" then hrp.CFrame = pos end
+	task.wait(1)
+	humanoid.Sit = false
+	task.wait(1)
+	setMovementEnabled(true)
+	if (hrp.Position - (typeof(pos) == "Vector3" and pos or pos.Position)).Magnitude > 10 then
+		teleportTo(pos)
+	end
+end
+
+local function sexyNotification(message, duration)
+	local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+	screenGui.Name = "SexyNotification"
+	screenGui.ResetOnSpawn = false
+	local textLabel = Instance.new("TextLabel", screenGui)
+	textLabel.Size = UDim2.new(0.4, 0, 0.08, 0)
+	textLabel.Position = UDim2.new(0.3, 0, 0.9, 0)
+	textLabel.Text = message
+	textLabel.BackgroundTransparency = 1
+	textLabel.TextScaled = true
+	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textLabel.Font = Enum.Font.GothamBold
+	textLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	textLabel.BorderSizePixel = 0
+	local fadeIn = TweenService:Create(textLabel, TweenInfo.new(0.5), {BackgroundTransparency = 0.2, TextTransparency = 0})
+	fadeIn:Play()
+	fadeIn.Completed:Wait()
+	task.wait(duration or 2)
+	local fadeOut = TweenService:Create(textLabel, TweenInfo.new(0.5), {BackgroundTransparency = 1, TextTransparency = 1})
+	fadeOut:Play()
+	fadeOut.Completed:Wait()
+	screenGui:Destroy()
+end
+
+local function getPromptBasePart(prompt)
+	local current = prompt.Parent
+	while current and not current:IsA("BasePart") do
+		current = current.Parent
+	end
+	return current
+end
+
+local function findPromptNearPosition(filterText, position, maxDistance)
+	maxDistance = maxDistance or 15
+	local closestPrompt, closestDistance = nil, math.huge
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj:IsA("ProximityPrompt") and obj.Enabled then
+			local action = string.lower(obj.ActionText or "")
+			local object = string.lower(obj.ObjectText or "")
+			if string.find(action, filterText) or string.find(object, filterText) then
+				local part = getPromptBasePart(obj)
+				if part then
+					local dist = (part.Position - position).Magnitude
+					if dist <= maxDistance and dist < closestDistance then
+						closestDistance = dist
+						closestPrompt = obj
+					end
+				end
+			end
+		end
+	end
+	return closestPrompt
+end
+
+local function firePromptWithHold(prompt)
+	if not prompt then return false end
+	if prompt.HoldDuration and prompt.HoldDuration > 0 then
+		prompt:InputHoldBegin()
+		task.wait(prompt.HoldDuration)
+		prompt:InputHoldEnd()
+	else
+		fireproximityprompt(prompt, true)
+		task.wait(0.1)
+		fireproximityprompt(prompt, false)
+	end
+	return true
+end
+
+local function hasTool(toolName)
+	return player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
+end
+
+local function isHoldingTool(toolName)
+	return player.Character and player.Character:FindFirstChild(toolName) ~= nil
+end
+
+local function equipTool(toolName)
+	local tool = player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
+	if tool and player.Character and player.Character:FindFirstChild("Humanoid") then
+		player.Character.Humanoid:EquipTool(tool)
+		task.wait(0.3)
+		return true
+	end
+	return false
+end
+
+local function countdownNotification(seconds)
+	local gui = Instance.new("ScreenGui", player.PlayerGui)
+	gui.Name = "CountdownNotification"
+	gui.ResetOnSpawn = false
+	local label = Instance.new("TextLabel", gui)
+	label.Size = UDim2.new(0.4, 0, 0.08, 0)
+	label.Position = UDim2.new(0.3, 0, 0.9, 0)
+	label.BackgroundTransparency = 0.2
+	label.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.Font = Enum.Font.GothamBold
+	label.TextScaled = true
+	for i = seconds, 1, -1 do
+		label.Text = "⏳ " .. i .. "s remaining..."
+		task.wait(1)
+	end
+	gui:Destroy()
+end
+
+-- Main Grab Function
+local function grabATM()
+	if atmBusy then return end
+	atmBusy = true
+
+	local hasDrill = hasTool("Drill")
+	if not hasDrill then
+		local buyPrompt = findPromptNearPosition("buy drill", drillLocation, 15)
+		if buyPrompt then
 			teleportTo(drillLocation)
-			if not firePromptWithHold(buyDrillPrompt) then
+			if not firePromptWithHold(buyPrompt) then
 				sexyNotification("❌ Failed to buy Drill", 2)
+				atmBusy = false
 				return false
 			end
 			task.wait(1.5)
 		else
 			sexyNotification("❌ No Drill to Buy Here!", 2)
+			atmBusy = false
 			return false
 		end
 	end
 
-	-- Equip drill if not held
-	if not isDrillEquipped then
+	if not isHoldingTool("Drill") then
 		teleportTo(drillLocation)
 		if not equipTool("Drill") then
 			sexyNotification("❌ Couldn't equip Drill", 2)
+			atmBusy = false
 			return false
 		end
 	end
 
-	-- Now drill at ATM
-	local atmPos, atmPrompt, atmPromptBasePart
+	local atmPos, atmPrompt
 	for _, pos in ipairs(atmLocations) do
 		local prompt = findPromptNearPosition("atm", pos, 15)
 		if prompt then
 			atmPos = pos
 			atmPrompt = prompt
-			atmPromptBasePart = getPromptBasePart(prompt)
 			break
 		end
 	end
-	if not atmPrompt or not atmPromptBasePart then
+	if not atmPrompt then
 		sexyNotification("❌ No ATM Prompt Found", 2)
+		atmBusy = false
 		return false
 	end
 
 	teleportTo(atmPos)
 	if not firePromptWithHold(atmPrompt) then
-		sexyNotification("❌ Failed to fire ATM Prompt", 2)
+		sexyNotification("❌ Failed to drill ATM", 2)
 		teleportTo(roofPlacementLocation)
+		atmBusy = false
 		return false
 	end
 
 	teleportTo(roofPlacementLocation)
 	countdownNotification(57)
 
-	teleportTo(atmPromptBasePart.CFrame)
-	local checkPrompt = findPromptNearPosition("atm", atmPromptBasePart.Position, 15)
-	if not checkPrompt then
-		sexyNotification("😢 Someone Stole Your Safe :(", 3)
-		teleportTo(roofPlacementLocation)
-		return false
-	end
+	local atmBase = getPromptBasePart(atmPrompt)
+	teleportTo(atmBase and atmBase.CFrame or atmPos)
 
-	local pickupPrompt = findNearestPrompt("pick up")
-	if not pickupPrompt or not firePromptWithHold(pickupPrompt) then
-		sexyNotification("❌ Pickup Failed", 2)
-		teleportTo(roofPlacementLocation)
-		return false
-	end
-
-	if not hasTool("ATM") then
-		equipTool("ATM")
+	local checkPrompt = findPromptNearPosition("atm", atmPos, 15)
+	if checkPrompt then
+		firePromptWithHold(checkPrompt)
 	end
 
 	teleportTo(roofPlacementLocation)
-	sexyNotification("🛑 Drop the ATM to stop the script.", 5)
+	sexyNotification("✅ ATM Grab Complete", 3)
+	atmBusy = false
 	return true
 end
 
- 	ATMSection:Button({
-    Text = "Grab A ATM",
+ATMSection:Button({
+	Text = "Grab ATM",
+	Callback = function()
+		grabATM()
+	end,
+})
+
+local teleportedMimics = {}
+local ignoreHistory = false
+local safeZonePosition = Vector3.new(-1268, 253, -5439) -- Custom safe zone
+
+
+-- Grab MimicATM button
+ATMSection:Button({
+    Text = "Grab MimicATM",
     Callback = function()
-    grabATM()
+        -- Gather all MimicATMs in workspace
+        local mimicATMList = {}
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj.Name == "MimicATM" or obj.Name:match("^MimicATM%d+$") then
+                table.insert(mimicATMList, obj)
+            end
+        end
+        if #mimicATMList == 0 then
+            sexyNotification("❌ No MimicATM Found", 3)
+            return
+        end
+
+        -- Pick next unvisited (or random if ignoring)
+        local nextATM = nil
+        if ignoreHistory then
+            nextATM = mimicATMList[math.random(#mimicATMList)]
+        else
+            for _, atm in ipairs(mimicATMList) do
+                if not teleportedMimics[atm] then
+                    nextATM = atm
+                    break
+                end
+            end
+            if not nextATM then
+                teleportedMimics = {}
+                nextATM = mimicATMList[1]
+            end
+        end
+
+        -- Teleport to ATM
+        if nextATM and nextATM:IsA("BasePart") then
+            teleportTo(nextATM.Position)
+            teleportedMimics[nextATM] = true
+
+            local prompt = findPromptNearPosition("atm", nextATM.Position, 15)
+            if not prompt then
+                sexyNotification("❌ No ATM Prompt Found", 2)
+                return
+            end
+
+            -- Fire prompt
+            if prompt.HoldDuration and prompt.HoldDuration > 0 then
+                prompt:InputHoldBegin()
+                task.wait(prompt.HoldDuration)
+                prompt:InputHoldEnd()
+            else
+                fireproximityprompt(prompt, true)
+                task.wait(0.1)
+                fireproximityprompt(prompt, false)
+            end
+
+            -- If player is holding or has ATM tool, teleport to safe zone
+            task.wait(0.2)
+            if hasTool("ATM") or isHoldingTool("ATM") then
+                teleportTo(safeZonePosition)
+                sexyNotification("✅ ATM grabbed. Teleported to safe zone.", 3)
+            end
+        else
+            sexyNotification("❌ Failed to teleport to MimicATM", 3)
+        end
     end
- 	})
- 	ATMSection:Toggle({
-    Text = "Auto Grab Safe",
-    Default = false,
-    Callback = function(state)
-    autoGrabEnabled = state
-    if autoGrabConnection then
-    autoGrabConnection:Disconnect()
-    autoGrabConnection = nil
-    end
-    if autoGrabEnabled then
-    autoGrabConnection = RunService.Heartbeat:Connect(function()
-    if not grabATM() then
-    autoGrabEnabled = false
-    if autoGrabConnection then
-    autoGrabConnection:Disconnect()
-    autoGrabConnection = nil
-    end
-    end
-    end)
-    end
-    end
- 	})
-	local bankSection = recoveryTab:Section({ Text = "Bank Options" })
+})
+
+
+    local bankSection = recoveryTab:Section({ Text = "Bank Options" })
 	-- Bronx ATM Toggle
 	local clonedATMGui = nil
 	bankSection:Toggle({
