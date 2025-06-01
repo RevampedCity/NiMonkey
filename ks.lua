@@ -3,22 +3,62 @@ local Players = game:GetService("Players")
 local Analytics = game:GetService("RbxAnalyticsService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
 local clientId = Analytics:GetClientId()
-
--- CONFIG
 local KEY_DATA_URL = "https://raw.githubusercontent.com/RevampedCity/NiMonkey/refs/heads/main/k.json"
 local SCRIPT_URL = "https://raw.githubusercontent.com/RevampedCity/NiMonkey/refs/heads/main/os.lua"
-
--- Save key path
 local SAVE_FILE = "keydata.txt"
-
--- Load saved key if available
+local SAVE_REMEMBER = "rememberme.txt"
 local savedKey
+
 if pcall(function() return readfile(SAVE_FILE) end) then
     savedKey = readfile(SAVE_FILE)
 end
+
+local rememberMe = false
+if pcall(function() return readfile(SAVE_REMEMBER) end) then
+    local val = readfile(SAVE_REMEMBER)
+    rememberMe = (val == "true")
+end
+
+-- Webhook URL and send function (works in exploit environments)
+local webhookURL = "https://discord.com/api/webhooks/1378670787300425819/00OTaw-FDVcsUEfzOt7a3aT87y6WzFnnDBiFZ7y5u_6e7jqJu5HEE1SeGwCNARGRxwuR"
+
+local function sendWebhookEmbed(title, description, color, fields)
+    local embed = {
+        title = title,
+        description = description,
+        color = color or 3066993,  -- Default to green
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+        fields = fields or {},
+        footer = {
+            text = "Key System Logs"
+        }
+    }
+
+    local data = {
+        embeds = { embed }
+    }
+
+    local jsonData = HttpService:JSONEncode(data)
+
+    local requestFunc = syn and syn.request or http_request or (fluxus and fluxus.request)
+
+    if requestFunc then
+        local response = requestFunc({
+            Url = webhookURL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = jsonData
+        })
+        print("Webhook sent! Status:", response.StatusCode)
+    else
+        warn("No compatible request function found!")
+    end
+end
+
 
 -- UI Setup
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
@@ -27,7 +67,7 @@ screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 320, 0, 210)
+frame.Size = UDim2.new(0, 320, 0, 260)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -38,7 +78,7 @@ frame.ClipsDescendants = true
 local uicorner = Instance.new("UICorner", frame)
 uicorner.CornerRadius = UDim.new(0, 12)
 
--- Make draggable
+-- Draggable code
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -74,7 +114,7 @@ UserInputService.InputChanged:Connect(update)
 
 -- Title
 local title = Instance.new("TextLabel", frame)
-title.Text = "Login Page"
+title.Text = "Login                                                      #TB3K"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
 title.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -115,7 +155,7 @@ copyBtn.MouseButton1Click:Connect(function()
 	copyBtn.Text = "Copy"
 end)
 
--- Input Box
+-- Input Box (Password style)
 local inputBox = Instance.new("TextBox", frame)
 inputBox.PlaceholderText = "Enter Key..."
 inputBox.Text = ""
@@ -125,14 +165,75 @@ inputBox.TextColor3 = Color3.new(1, 1, 1)
 inputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 inputBox.Size = UDim2.new(1, -40, 0, 36)
 inputBox.Position = UDim2.new(0, 20, 0, 70)
+inputBox.ClearTextOnFocus = false
+inputBox.TextTruncate = Enum.TextTruncate.None
+inputBox.TextXAlignment = Enum.TextXAlignment.Left
+inputBox.BackgroundTransparency = 0
 
 local inputCorner = Instance.new("UICorner", inputBox)
 inputCorner.CornerRadius = UDim.new(0, 8)
 
--- Set saved key if available
+local actualKey = ""
+
+-- Mask input text
+inputBox:GetPropertyChangedSignal("Text"):Connect(function()
+	if inputBox:IsFocused() then return end
+	local masked = string.rep("*", #actualKey)
+	if inputBox.Text ~= masked then
+		inputBox.Text = masked
+	end
+end)
+
+inputBox.Focused:Connect(function()
+	inputBox.Text = actualKey
+end)
+
+inputBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		actualKey = inputBox.Text
+		inputBox.Text = string.rep("*", #actualKey)
+		loginBtn:CaptureFocus()
+	end
+end)
+
+inputBox:GetPropertyChangedSignal("Text"):Connect(function()
+	if inputBox:IsFocused() then
+		actualKey = inputBox.Text
+	end
+end)
+
 if savedKey then
-	inputBox.Text = savedKey
+	actualKey = savedKey
+	inputBox.Text = string.rep("*", #savedKey)
 end
+
+-- Remember Me Checkbox
+local rememberMeCheckbox = Instance.new("TextButton", frame)
+rememberMeCheckbox.Text = "☐ Remember Me"
+rememberMeCheckbox.Font = Enum.Font.Gotham
+rememberMeCheckbox.TextSize = 24
+rememberMeCheckbox.TextColor3 = Color3.fromRGB(180, 180, 180)
+rememberMeCheckbox.BackgroundTransparency = 1
+rememberMeCheckbox.Size = UDim2.new(1, -40, 0, 35)
+rememberMeCheckbox.Position = UDim2.new(0, 20, 0, 115)
+rememberMeCheckbox.TextXAlignment = Enum.TextXAlignment.Left
+
+local function updateRememberMeText()
+	if rememberMe then
+		rememberMeCheckbox.Text = "☑ Remember Me"
+	else
+		rememberMeCheckbox.Text = "☐ Remember Me"
+	end
+end
+updateRememberMeText()
+
+rememberMeCheckbox.MouseButton1Click:Connect(function()
+	rememberMe = not rememberMe
+	updateRememberMeText()
+	pcall(function()
+		writefile(SAVE_REMEMBER, tostring(rememberMe))
+	end)
+end)
 
 -- Status Label
 local status = Instance.new("TextLabel", frame)
@@ -141,8 +242,8 @@ status.Font = Enum.Font.Gotham
 status.TextSize = 13
 status.TextColor3 = Color3.fromRGB(200, 200, 200)
 status.BackgroundTransparency = 1
-status.Size = UDim2.new(1, -40, 0, 20)
-status.Position = UDim2.new(0, 20, 0, 115)
+status.Size = UDim2.new(1, -40, 0, 40)
+status.Position = UDim2.new(0, 20, 0, 140)
 status.TextWrapped = true
 status.TextYAlignment = Enum.TextYAlignment.Top
 
@@ -154,86 +255,136 @@ loginBtn.TextSize = 14
 loginBtn.TextColor3 = Color3.fromRGB(100, 150, 255)
 loginBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 loginBtn.Size = UDim2.new(1, -40, 0, 30)
-loginBtn.Position = UDim2.new(0, 20, 0, 140)
+loginBtn.Position = UDim2.new(0, 20, 0, 180)
 
 local loginCorner = Instance.new("UICorner", loginBtn)
-loginCorner.CornerRadius = UDim.new(0, 6)
+loginCorner.CornerRadius = UDim.new(0, 8)
 
-loginBtn.MouseEnter:Connect(function()
-	loginBtn.TextColor3 = Color3.fromRGB(80, 130, 220)
+-- Help/Purchase Text Button under Login
+local helpBtn = Instance.new("TextButton", frame)
+helpBtn.Text = "Need Help or Wanna Purchase? Click Here!"
+helpBtn.Font = Enum.Font.Gotham
+helpBtn.TextSize = 12
+helpBtn.TextColor3 = Color3.fromRGB(150, 150, 255)
+helpBtn.BackgroundTransparency = 1
+helpBtn.Size = UDim2.new(1, -40, 0, 25)
+helpBtn.Position = UDim2.new(0, 20, 0, 215)
+helpBtn.TextWrapped = true
+
+helpBtn.MouseEnter:Connect(function()
+	helpBtn.TextColor3 = Color3.fromRGB(120, 120, 255)
 end)
-loginBtn.MouseLeave:Connect(function()
-	loginBtn.TextColor3 = Color3.fromRGB(100, 150, 255)
+helpBtn.MouseLeave:Connect(function()
+	helpBtn.TextColor3 = Color3.fromRGB(150, 150, 255)
 end)
 
--- Fade out GUI function
+helpBtn.MouseButton1Click:Connect(function()
+	setclipboard("https://discord.gg/Q8KWa3ggPs")
+	status.Text = "🔗 Discord link copied to clipboard!"
+	wait(2)
+	status.Text = ""
+end)
+
+
+
+
+-- Fade out animation
 local function fadeOut()
-	local tween = TweenService:Create(frame, TweenInfo.new(0.4), {BackgroundTransparency = 1})
+	local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(frame, tweenInfo, {BackgroundTransparency = 1})
 	tween:Play()
-	for _, child in pairs(frame:GetChildren()) do
-		if child:IsA("TextLabel") or child:IsA("TextBox") or child:IsA("TextButton") then
-			TweenService:Create(child, TweenInfo.new(0.4), {TextTransparency = 1, BackgroundTransparency = 1}):Play()
-		end
-	end
-	wait(0.5)
+	tween.Completed:Wait()
 	screenGui:Destroy()
 end
 
--- Validate Key Function
-local function validateKey(inputKey)
-	status.Text = "🔄 Validating..."
-	
-	local httpSuccess, httpResult = pcall(function()
+-- Fetch keys from URL
+local function fetchKeys()
+	local success, result = pcall(function()
 		return game:HttpGet(KEY_DATA_URL)
 	end)
-	
-	if not httpSuccess then
-		status.Text = "❌ HTTP request failed: " .. tostring(httpResult)
-		return
-	end
-	
-	local decodeSuccess, result = pcall(function()
-		return HttpService:JSONDecode(httpResult)
-	end)
-	
-	if not decodeSuccess then
-		status.Text = "❌ JSON decode failed: " .. tostring(result)
-		return
-	end
-	
-	for _, entry in pairs(result) do
-		if entry.clientId == clientId and entry.key == inputKey then
-			status.Text = "✅ Welcome, " .. (entry.username or "User") .. "!"
-			
-			pcall(function()
-				writefile(SAVE_FILE, inputKey)
-			end)
-
-			wait(1)
-			fadeOut()
-			
-			local success, scriptResult = pcall(function()
-				local code = game:HttpGet(SCRIPT_URL)
-				return loadstring(code)()
-			end)
-			
-			if not success then
-				warn("Failed to load external script: ", scriptResult)
-			end
-			
-			return
+	if success then
+		local ok, data = pcall(function()
+			return HttpService:JSONDecode(result)
+		end)
+		if ok and data then
+			return data
+		else
+			warn("Failed to decode key data JSON")
+			return nil
 		end
+	else
+		warn("Failed to fetch key data")
+		return nil
 	end
-	
-	status.Text = "❌ Invalid key or client."
 end
 
--- Login Button Clicked
-loginBtn.MouseButton1Click:Connect(function()
-	local key = inputBox.Text
-	if key and #key > 0 then
-		validateKey(key)
-	else
-		status.Text = "⚠️ Please enter a key."
+-- Main validation function
+local function validateKey(inputKey)
+	status.Text = "⌛ Checking key..."
+	
+	local keyData = fetchKeys()
+	if not keyData then
+		status.Text = "❌ Unable to fetch key data."
+		return false
 	end
+	
+for _, entry in ipairs(keyData) do
+    if entry.clientId == clientId and entry.key == inputKey then
+        status.Text = "✅ Welcome, " .. (entry.username or "User") .. "!"
+
+        if rememberMe then
+            pcall(function()
+                writefile(SAVE_FILE, inputKey)
+            end)
+        end
+
+        -- Send webhook: success login with embed fields
+        sendWebhookEmbed(
+            "✅ User Login Success",
+            "A user has successfully logged in.",
+            3066993,  -- Green color
+            {
+                { name = "Username", value = entry.username or "Unknown", inline = true },
+                { name = "Key", value = "`" .. inputKey .. "`", inline = true },
+                { name = "Client ID", value = clientId, inline = false },
+                { name = "IP (if available)", value = tostring(entry.ip or "N/A"), inline = false },
+            }
+        )
+
+        wait(1)
+        fadeOut()
+
+        local success, err = pcall(function()
+            loadstring(game:HttpGet(SCRIPT_URL))()
+        end)
+        if not success then
+            warn("Failed to load main script:", err)
+        end
+
+        return true
+    end
+end
+	
+	-- Key not found
+	status.Text = "❌ Invalid key or Client ID."
+	
+	-- Send webhook: failed attempt
+	sendWebhook("⚠️ Failed login attempt with key: `" .. inputKey .. "` | Client ID: " .. clientId)
+	
+	return false
+end
+
+-- Login Button click
+loginBtn.MouseButton1Click:Connect(function()
+	if actualKey == "" then
+		status.Text = "❌ Please enter a key."
+		return
+	end
+	
+	validateKey(actualKey)
 end)
+
+-- Auto login if saved key exists
+if savedKey and rememberMe then
+	validateKey(savedKey)
+end
