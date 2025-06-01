@@ -2,28 +2,70 @@
     local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/RevampedCity/Shaman-Library/refs/heads/main/Library'))()
     local Window = Library:Window({ Text = "Revamped.City | 🐍THA BRONX 3🔪" })
 
--- Safe Mode Tab
-    local safeModeTab = Window:Tab({ Text = "Safe Mode" })
-
-    -- Guns Section
-    local gunsSection = safeModeTab:Section({ Text = "Guns" })
-
-    local keepGunsEnabled = false
+-- Player
+	local playerTab = Window:Tab({ Text = "Main" })
+    local playerSection = playerTab:Section({ Text = "Player Options" })
+	playerSection:Button({
+    Text = "Instant Prompts",
+    Description = "Removes the E Holding Time Anywhere",
+    Callback = function()
+    local function isInsideMimicATM(obj)
+    local parent = obj.Parent
+    while parent do
+    if parent.Name == "MimicATM" then
+    return true
+    end
+    parent = parent.Parent
+    end
+    return false
+    end
+    local function removeHoldDuration(obj)
+    if obj:IsA("ProximityPrompt") and not isInsideMimicATM(obj) then
+    obj.HoldDuration = 0
+    end
+    end
+    for _, obj in ipairs(game:GetService("Workspace"):GetDescendants()) do
+    removeHoldDuration(obj)
+    end
+    game:GetService("Workspace").DescendantAdded:Connect(function(obj)
+    if obj:IsA("ProximityPrompt") then
+    removeHoldDuration(obj)
+    elseif obj:GetChildren() then
+    for _, desc in ipairs(obj:GetDescendants()) do
+    removeHoldDuration(desc)
+    end
+    end
+    end)
+    end
+ 	})
+	playerSection:Button({
+    Text = "Unban Voice Chat",
+    Description = "Attempts to rejoin Voice Chat",
+    Callback = function()
+    local success, result = pcall(function()
+    game:GetService("VoiceChatService"):JoinVoice()
+    end)
+    if success then
+    print("Attempted to join voice successfully.")
+    else
+    warn("Failed to join voice:", result)
+    end
+    end
+    })
+	local keepGunsEnabled = false
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local StarterGui = game:GetService("StarterGui")
-    -- Notification function
     local function showNotification(message)
     pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = "Revamped.City",
-            Text = message,
-            Duration = 5
-        })
+    StarterGui:SetCore("SendNotification", {
+    Title = "Revamped.City",
+    Text = message,
+    Duration = 5
+    })
     end)
     end
-
     local excludedItems = {
     "Phone", "Fist", "Car Keys", "Gun Permit",
     ".UziMag", ".Bullets", "5.56", "7.62", ".9mm", 
@@ -37,139 +79,82 @@
     "PinkCamoGloves", "RedCamoGloves", "BluCamoGloves",
     "Water", "RawChicken"
     }
-
-        local function normalize(str)
+    local function normalize(str)
     return str:lower():gsub("%W", "")
     end
-
     local function isExcluded(toolName)
     local normTool = normalize(toolName)
     for _, excluded in ipairs(excludedItems) do
-        if normalize(excluded) == normTool then
-            return true
-        end
+    if normalize(excluded) == normTool then
+    return true
+    end
     end
     return false
     end
-
     local ListWeaponRemote = ReplicatedStorage:WaitForChild("ListWeaponRemote")
-
     local function sellItem(itemName)
     local args = {
-        [1] = itemName,
-        [2] = 999999
+    [1] = itemName,
+    [2] = 999999
     }
     ListWeaponRemote:FireServer(unpack(args))
     end
-
     local function onDeath()
     wait(2.5)
     if keepGunsEnabled then
-        task.spawn(function()
-            repeat
-                local soldSomething = false
-                for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
-                    if item:IsA("Tool") and not isExcluded(item.Name) then
-                        sellItem(item.Name)
-                        soldSomething = true
-                        task.wait(2)
-                    end
-                end
-                task.wait(0.1)
-            until not soldSomething
-        end)
+    task.spawn(function()
+    repeat
+    local soldSomething = false
+    for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+    if item:IsA("Tool") and not isExcluded(item.Name) then
+    sellItem(item.Name)
+    soldSomething = true
+    task.wait(2)
+    end
+	end
+    task.wait(0.1)
+    until not soldSomething
+    end)
     end
     end
-
     local function onRespawn()
     if keepGunsEnabled then
-        task.wait(2)
-        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-        if playerGui then
-            local marketGui = playerGui:FindFirstChild("Bronx Market 2")
-            if marketGui then
-                marketGui.Enabled = true
-                showNotification("Please Select Your Guns")
-            end
-        end
+    task.wait(2)
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if playerGui then
+    local marketGui = playerGui:FindFirstChild("Bronx Market 2")
+    if marketGui then
+    marketGui.Enabled = true
+    showNotification("Please Select Your Guns")
     end
     end
-
+    end
+    end
     LocalPlayer.CharacterAdded:Connect(function(character)
     local humanoid = character:WaitForChild("Humanoid", 5)
     if humanoid then
-        humanoid.Died:Connect(onDeath)
+    humanoid.Died:Connect(onDeath)
     end
     onRespawn()
     end)
-
     if LocalPlayer.Character then
     local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
     if humanoid then
-        humanoid.Died:Connect(onDeath)
+    humanoid.Died:Connect(onDeath)
     end
     end
-
-    gunsSection:Toggle({
-    Text = "Keep Guns",
+    playerSection:Toggle({
+    Text = "Keep Guns After Death",
     State = false,
     Callback = function(state)
-        keepGunsEnabled = state
-        if keepGunsEnabled then
-            onRespawn()
-        end
+    keepGunsEnabled = state
+    if keepGunsEnabled then
+    onRespawn()
+    end
     end
     })
-
-    -- Player Section
-    local playerSection = safeModeTab:Section({ Text = "Player", Side = "Right" })
-
-    local toggleEnabled = false
-    local teleportHealth = 50
-
     playerSection:Toggle({
-    Text = "Enable Anti Die",
-    State = false,
-    Callback = function(value)
-        toggleEnabled = value
-    end    
-    })
-
-    playerSection:Slider({
-    Text = "Health to teleport at",
-    Min = 50,
-    Max = 99,
-    Increment = 1,
-    Value = 50,
-    Callback = function(value)
-        teleportHealth = value
-    end    
-    })
-
--- Player --
-    local playerTab = Window:Tab({ Text = "Player" })
-    local playerSection = playerTab:Section({ Text = "Player Options" })
-    
-    
-    
-    playerSection:Button({
-    Text = "Unban Voice Chat",
-    Description = "Attempts to rejoin Voice Chat",
-    Callback = function()
-        local success, result = pcall(function()
-            game:GetService("VoiceChatService"):JoinVoice()
-        end)
-        if success then
-            print("Attempted to join voice successfully.")
-        else
-            warn("Failed to join voice:", result)
-        end
-    end
-    })
-
-    -- Anti-Knockback Toggle
-    playerSection:Toggle({
-    Text = "Anti-Knockback",
+    Text = "No Knockback",
     Description = "Disables the knockback permanently",
     Default = false,
     Callback = function(state)
@@ -195,667 +180,559 @@
     end
     end
     })
-
-    -- Anti-Hunger Toggle
     playerSection:Toggle({
-    Text = "Anti-Hunger",
+    Text = "No Hunger",
     Description = "Disables the hunger system permanently",
     Default = false,
     Callback = function(state)
-        local function v151()
-            local player = game.Players.LocalPlayer
-            if player and player:FindFirstChild("PlayerGui") then
-                local hunger = player.PlayerGui:FindFirstChild("Hunger")
-                if hunger then
-                    local hungerScript = hunger:FindFirstChild("Frame") and hunger.Frame:FindFirstChild("Frame") and
-                        hunger.Frame.Frame:FindFirstChild("Frame") and hunger.Frame.Frame.Frame:FindFirstChild("HungerBarScript")
-                    if hungerScript then
-                        hungerScript.Disabled = true
-                    end
-                end
-            end
-        end
-
-        if state then
-            task.spawn(function()
-                while state do
-                    task.wait(1)
-                    v151()
-                end
-            end)
-        end
+    local function v151()
+    local player = game.Players.LocalPlayer
+    if player and player:FindFirstChild("PlayerGui") then
+    local hunger = player.PlayerGui:FindFirstChild("Hunger")
+    if hunger then
+    local hungerScript = hunger:FindFirstChild("Frame") and hunger.Frame:FindFirstChild("Frame") and
+    hunger.Frame.Frame:FindFirstChild("Frame") and hunger.Frame.Frame.Frame:FindFirstChild("HungerBarScript")
+    if hungerScript then
+    hungerScript.Disabled = true
+    end
+    end
+    end
+    end
+	if state then
+    task.spawn(function()
+    while state do
+    task.wait(1)
+    v151()
+    end
+    end)
+    end
     end
     })
-
-    -- Anti-Sleep Toggle
     playerSection:Toggle({
-    Text = "Anti-Sleep",
+    Text = "No Sleep",
     Description = "Disables the sleep system permanently",
     Default = false,
     Callback = function(state)
-        local function v152()
-            local player = game.Players.LocalPlayer
-            if player and player:FindFirstChild("PlayerGui") then
-                local sleepGui = player.PlayerGui:FindFirstChild("SleepGui")
-                if sleepGui then
-                    local sleepScript = sleepGui:FindFirstChild("Frame") and sleepGui.Frame:FindFirstChild("sleep") and
-                        sleepGui.Frame.sleep:FindFirstChild("SleepBar") and sleepGui.Frame.sleep.SleepBar:FindFirstChild("sleepScript")
-                    if sleepScript then
-                        sleepScript.Disabled = true
-                    end
-                end
-            end
-        end
-
-        if state then
-            task.spawn(function()
-                while state do
-                    task.wait(1)
-                    v152()
-                end
-            end)
-        end
+    local function v152()
+    local player = game.Players.LocalPlayer
+    if player and player:FindFirstChild("PlayerGui") then
+    local sleepGui = player.PlayerGui:FindFirstChild("SleepGui")
+    if sleepGui then
+    local sleepScript = sleepGui:FindFirstChild("Frame") and sleepGui.Frame:FindFirstChild("sleep") and
+    sleepGui.Frame.sleep:FindFirstChild("SleepBar") and sleepGui.Frame.sleep.SleepBar:FindFirstChild("sleepScript")
+    if sleepScript then
+    sleepScript.Disabled = true
+    end
+    end
+    end
+    end
+    if state then
+    task.spawn(function()
+    while state do
+    task.wait(1)
+    v152()
+    end
+    end)
+    end
     end
     })
-
-    -- Disable Stamina Toggle
     playerSection:Toggle({
-    Text = "Disable Stamina",
+    Text = "No Stamina",
     Description = "Disables the stamina system permanently",
     Default = false,
     Callback = function(state)
-        local function v154()
-            local player = game.Players.LocalPlayer
-            if player and player:FindFirstChild("PlayerGui") then
-                local stamina = player.PlayerGui:FindFirstChild("Run") and player.PlayerGui.Run:FindFirstChild("Frame") and
-                    player.PlayerGui.Run.Frame:FindFirstChild("Frame") and
-                    player.PlayerGui.Run.Frame.Frame:FindFirstChild("Frame") and
-                    player.PlayerGui.Run.Frame.Frame.Frame:FindFirstChild("StaminaBarScript")
-                if stamina then
-                    stamina.Disabled = true
-                end
-            end
-        end
-
-        if state then
-            task.spawn(function()
-                while state do
-                    task.wait(1)
-                    v154()
-                end
-            end)
-        end
+    local function v154()
+    local player = game.Players.LocalPlayer
+    if player and player:FindFirstChild("PlayerGui") then
+    local stamina = player.PlayerGui:FindFirstChild("Run") and player.PlayerGui.Run:FindFirstChild("Frame") and
+    player.PlayerGui.Run.Frame:FindFirstChild("Frame") and
+    player.PlayerGui.Run.Frame.Frame:FindFirstChild("Frame") and
+    player.PlayerGui.Run.Frame.Frame.Frame:FindFirstChild("StaminaBarScript")
+    if stamina then
+    stamina.Disabled = true
+    end
+    end
+    end
+    if state then
+    task.spawn(function()
+    while state do
+    task.wait(1)
+    v154()
+    end
+    end)
+    end
     end
     })
-
-    local movementSection = playerTab:Section({ Text = "Movement", Side = "Right" })
-
-    local player = game:GetService("Players").LocalPlayer
-
+	local player = game:GetService("Players").LocalPlayer
     local function setupCharacter()
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoid = character:WaitForChild("Humanoid")
     local hrp = character:WaitForChild("HumanoidRootPart")
     return character, humanoid, hrp
     end
-
     -- No Fall Damage Toggle
-    movementSection:Toggle({
-    Text = "Anti-Fall",
+    playerSection:Toggle({
+    Text = "No Fall",
     Description = "Disables Fall Damage",
     Default = false,
     Callback = function(state)
-        local function v150()
-            local player = game.Players.LocalPlayer
-            if player and player.Character then
-                local fallDamage = player.Character:FindFirstChild("FallDamageRagdoll")
-                if fallDamage then
-                    fallDamage.Disabled = true
-                end
-            end
-        end
-
-        if state then
-            task.spawn(function()
-                while state do
-                    task.wait(1)
-                    v150()
-                end
-            end)
-        end
+    local function v150()
+    local player = game.Players.LocalPlayer
+    if player and player.Character then
+    local fallDamage = player.Character:FindFirstChild("FallDamageRagdoll")
+    if fallDamage then
+    fallDamage.Disabled = true
+    end
+    end
+    end
+    if state then
+    task.spawn(function()
+    while state do
+    task.wait(1)
+    v150()
+    end
+    end)
+    end
     end
     })
-    local respawnSection = playerTab:Section({ Text = "Respawn" })
-    local lastPosition = nil
-    local deathConnection = nil
-    local respawnConnection = nil
-
-    respawnSection:Toggle({
-    Text = "Respawn Where Died",
-    Default = false,
-    Callback = function(state)
-        if state then
-            local function setup()
-                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                local humanoid = character:WaitForChild("Humanoid")
-                local root = character:WaitForChild("HumanoidRootPart")
-
-                if deathConnection then deathConnection:Disconnect() end
-                if respawnConnection then respawnConnection:Disconnect() end
-
-                deathConnection = humanoid.Died:Connect(function()
-                    if root then
-                        lastPosition = root.CFrame
-                    end
-                end)
-
-                respawnConnection = LocalPlayer.CharacterAdded:Connect(function(char)
-                    local newRoot = char:WaitForChild("HumanoidRootPart")
-                    if lastPosition then
-                        newRoot.CFrame = lastPosition
-                    end
-                    setup()
-                end)
-            end
-            setup()
-        else
-            if respawnConnection then
-                respawnConnection:Disconnect()
-                respawnConnection = nil
-            end
-            if deathConnection then
-                deathConnection:Disconnect()
-                deathConnection = nil
-            end
-            lastPosition = nil
-        end
+    playerSection:Toggle({
+    Text = "No Jail",
+    State = false,
+    Callback = function(value)
+    local jailRemote = ReplicatedStorage:FindFirstChild("JailRemote")
+    if value then
+    if jailRemote then
+    jailRemote:Destroy()
+    end
+    end
     end
     })
-
-
+    local AntiRentPayEnabled = false
+    playerSection:Toggle({
+    Text = "No Rent Pay",
+    State = false,
+    Callback = function(value)
+    AntiRentPayEnabled = value
+    if value then
+    task.spawn(function()
+    while AntiRentPayEnabled do
+    task.wait(1)
+    local player = LocalPlayer
+    local rentGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("RentGui")
+    if rentGui then
+    local rentScript = rentGui:FindFirstChild("LocalScript")
+    if rentScript then
+    rentScript.Disabled = true
+    rentScript:Destroy()
+    end
+    end
+	end
+	end)
+	end
+    end
+    })
+	local respawnSection = playerTab:Section({ Text = "Respawn Options", Side = "Right" })
     local lastPosition = nil
-
-    -- Button to set spawn and kill the player
     respawnSection:Button({
     Text = "Set Spawn",
     Callback = function()
-        local character = LocalPlayer.Character
-        if not character then return end
-
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        local humanoid = character:FindFirstChild("Humanoid")
-        if not humanoidRootPart or not humanoid then return end
-
-        -- Save current position
-        lastPosition = humanoidRootPart.CFrame
-
-        -- Kill the player to trigger respawn
-        humanoid.Health = 0
-
-        -- Wait for new character and teleport to saved position
-        LocalPlayer.CharacterAdded:Wait()
-        local newCharacter = LocalPlayer.Character
-        local newRoot = newCharacter:WaitForChild("HumanoidRootPart")
-
-        if lastPosition then
-            newRoot.CFrame = lastPosition
-        end
+    local character = LocalPlayer.Character
+    if not character then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoidRootPart or not humanoid then return end
+    lastPosition = humanoidRootPart.CFrame
+    humanoid.Health = 0
+    LocalPlayer.CharacterAdded:Wait()
+    local newCharacter = LocalPlayer.Character
+    local newRoot = newCharacter:WaitForChild("HumanoidRootPart")
+    if lastPosition then
+    newRoot.CFrame = lastPosition
+    end
     end
     })
-
-    -- Button to clear custom spawn (remove stored position)
     respawnSection:Button({
     Text = "Remove Spawn",
     Callback = function()
-        lastPosition = nil
-        print("Custom spawn position removed. Next respawn will be normal.")
+    lastPosition = nil
+    print("Custom spawn position removed. Next respawn will be normal.")
     end
     })
+	local guiSection = playerTab:Section({ Text = "GUIs" })
+	local player = game.Players.LocalPlayer
+	guiSection:Button({
+    Text = "Bronx Clothing",
+    Callback = function()
+        player.PlayerGui["Bronx CLOTHING"].Enabled = true
+    end
+	})
+	guiSection:Button({
+    Text = "Bronx Market",
+    Callback = function()
+        player.PlayerGui["Bronx Market 2"].Enabled = true
+    end
+	})
+
+	guiSection:Button({
+    Text = "Bronx Pawning",
+    Callback = function()
+        player.PlayerGui["Bronx PAWNING"].Enabled = true
+    end
+	})
+
+	guiSection:Button({
+    Text = "Bronx Tattoos",
+    Callback = function()
+        player.PlayerGui["Bronx TATTOOS"].Enabled = true
+    end
+	})
+
+	guiSection:Button({
+    Text = "Bronx Crafting",
+    Callback = function()
+        player.PlayerGui.CraftGUI.Main.Visible = true
+    end
+	})
+
+	guiSection:Button({
+    Text = "Bronx Garage",
+    Callback = function()
+        player.PlayerGui.ColorWheel.Enabled = true
+        
+        local Notification = Instance.new("ScreenGui")
+        Notification.Name = "Notification"
+        Notification.Parent = player.PlayerGui
+        
+        local TextLabel = Instance.new("TextLabel")
+        TextLabel.Parent = Notification
+        TextLabel.Text = "Press 'Back' Unless You Have The Game Pass"
+        TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TextLabel.BackgroundTransparency = 0.5
+        TextLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        TextLabel.Position = UDim2.new(0.5, -150, 0, 20)
+        TextLabel.Size = UDim2.new(0, 300, 0, 50)
+        TextLabel.TextScaled = true
+        TextLabel.AnchorPoint = Vector2.new(0.5, 0)
+        
+        delay(3, function()
+            Notification:Destroy()
+        end)
+    end
+	})
+
 
     local miscSection = playerTab:Section({ Text = "Misc", Side = "Right" })
-
-
-
-    -- Admin Alert
+    miscSection:Button({
+    Text = "Drop All Tools",
+    Callback = function()
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    if backpack then
+    for _, tool in ipairs(backpack:GetChildren()) do
+    if tool:IsA("Tool") then
+    tool.Parent = character
+    task.wait(0.1)
+    tool.Parent = workspace
+    end
+    end
+    end
+    if character then
+    for _, tool in ipairs(character:GetChildren()) do
+    if tool:IsA("Tool") then
+    tool.Parent = workspace
+    end
+    end
+    end
+    end
+    })
     miscSection:Toggle({
     Text = "Admin Alert",
     Description = "Notifies when an admin joins",
     Default = false,
     Callback = function(v148)
-        _G.AdminAlertEnabled = v148
+    _G.AdminAlertEnabled = v148
     end
     })
-
     local function checkForAdmin()
     for _, player in ipairs(game.Players:GetPlayers()) do
-        for _, child in ipairs(player:GetChildren()) do
-            if child.Name:find("_Tracker") then
-                _G.Notify({
-                    Title = "Admin Alert",
-                    Content = "User: " .. player.Name .. " is an Admin! Be Careful!",
-                    Duration = 5
-                })
-                return
-            end
-        end
+    for _, child in ipairs(player:GetChildren()) do
+    if child.Name:find("_Tracker") then
+    _G.Notify({
+    Title = "Admin Alert",
+    Content = "User: " .. player.Name .. " is an Admin! Be Careful!",
+    Duration = 5
+    })
+    return
     end
     end
-
+    end
+    end
     spawn(function()
     while wait(113 - (17 + 86)) do
-        if _G.AdminAlertEnabled then
-            checkForAdmin()
-        end
+    if _G.AdminAlertEnabled then
+    checkForAdmin()
+    end
     end
     end)
-
- miscSection:Button({
-    Text = "Instant Prompts",
-    Description = "Removes the E Holding Time Anywhere",
-    Callback = function()
-        local function isInsideMimicATM(obj)
-            local parent = obj.Parent
-            while parent do
-                if parent.Name == "MimicATM" then
-                    return true
-                end
-                parent = parent.Parent
-            end
-            return false
-        end
-
-        local function removeHoldDuration(obj)
-            if obj:IsA("ProximityPrompt") and not isInsideMimicATM(obj) then
-                obj.HoldDuration = 0
-            end
-        end
-
-        -- Remove HoldDuration from all existing Prompts
-        for _, obj in ipairs(game:GetService("Workspace"):GetDescendants()) do
-            removeHoldDuration(obj)
-        end
-
-        -- Listen for any new descendants added to Workspace
-        game:GetService("Workspace").DescendantAdded:Connect(function(obj)
-            if obj:IsA("ProximityPrompt") then
-                removeHoldDuration(obj)
-            elseif obj:GetChildren() then
-                for _, desc in ipairs(obj:GetDescendants()) do
-                    removeHoldDuration(desc)
-                end
-            end
-        end)
-    end
- })
-
-    -- Drop All Tools Button
-    miscSection:Button({
-    Text = "Drop All Tools",
-    Callback = function()
-        local backpack = LocalPlayer:FindFirstChild("Backpack")
-        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        
-        if backpack then
-            for _, tool in ipairs(backpack:GetChildren()) do
-                if tool:IsA("Tool") then
-                    tool.Parent = character
-                    task.wait(0.1)
-                    tool.Parent = workspace
-                end
-            end
-        end
-        
-        if character then
-            for _, tool in ipairs(character:GetChildren()) do
-                if tool:IsA("Tool") then
-                    tool.Parent = workspace
-                end
-            end
-        end
-    end
-    })
-
- local player = game.Players.LocalPlayer
- local mouse = player:GetMouse()
- local rs = game:GetService("RunService")
-
- -- Grab Tool Handler
- local grabToolEnabled = false
- local grabTool = nil
-
- local function createGrabTool()
+ 	local player = game.Players.LocalPlayer
+ 	local mouse = player:GetMouse()
+ 	local rs = game:GetService("RunService")
+ 	local grabToolEnabled = false
+ 	local grabTool = nil
+ 	local function createGrabTool()
     local tool = Instance.new("Tool")
     tool.Name = "Grab"
-
     local handle = Instance.new("Part")
     handle.Size = Vector3.zero
     handle.CanCollide = false
     handle.Transparency = 1
     handle.Name = "Handle"
     handle.Parent = tool
-
     tool.RequiresHandle = true
     tool.GripPos = Vector3.new()
-
     local targets = {}
     local holding = false
-
     local function align(p0, p1)
-        local a0, a1 = Instance.new("Attachment", p0), Instance.new("Attachment", p1)
-        local al = Instance.new("AlignPosition", p0)
-        local ao = Instance.new("AlignOrientation", p0)
-
-        al.Attachment0 = a0
-        al.Attachment1 = a1
-        al.Responsiveness = math.huge
-        al.MaxForce = math.huge
-        al.MaxVelocity = math.huge
-
-        ao.Attachment0 = a0
-        ao.Attachment1 = a1
-        ao.Responsiveness = math.huge
-        ao.MaxTorque = math.huge
-        ao.MaxAngularVelocity = math.huge
-
-        return a0, a1, al, ao
+    local a0, a1 = Instance.new("Attachment", p0), Instance.new("Attachment", p1)
+    local al = Instance.new("AlignPosition", p0)
+    local ao = Instance.new("AlignOrientation", p0)
+    al.Attachment0 = a0
+    al.Attachment1 = a1
+    al.Responsiveness = math.huge
+    al.MaxForce = math.huge
+    al.MaxVelocity = math.huge
+    ao.Attachment0 = a0
+    ao.Attachment1 = a1
+    ao.Responsiveness = math.huge
+    ao.MaxTorque = math.huge
+    ao.MaxAngularVelocity = math.huge
+    return a0, a1, al, ao
     end
-
     local function drop()
-        for _, target in ipairs(targets) do
-            local t, a0, a1, al, ao = unpack(target)
-            if t then
-                t.CanCollide = true
-                t.Velocity = handle.Velocity
-                t.RotVelocity = handle.RotVelocity
-                a0:Destroy()
-                a1:Destroy()
-                al:Destroy()
-                ao:Destroy()
-            end
-        end
-        targets = {}
-        holding = false
+    for _, target in ipairs(targets) do
+    local t, a0, a1, al, ao = unpack(target)
+    if t then
+    t.CanCollide = true
+    t.Velocity = handle.Velocity
+    t.RotVelocity = handle.RotVelocity
+    a0:Destroy()
+    a1:Destroy()
+    al:Destroy()
+    ao:Destroy()
     end
-
+    end
+    targets = {}
+    holding = false
+    end
     local function grab()
-        local target = mouse.Target
-        if target and not target.Anchored and not target:FindFirstChildOfClass("WeldConstraint") then
-            local a0, a1, al, ao = align(target, handle)
-            table.insert(targets, {target, a0, a1, al, ao})
-            target.CanCollide = false
-        end
+    local target = mouse.Target
+    if target and not target.Anchored and not target:FindFirstChildOfClass("WeldConstraint") then
+    local a0, a1, al, ao = align(target, handle)
+    table.insert(targets, {target, a0, a1, al, ao})
+    target.CanCollide = false
     end
-
+    end
     local selectionBox = Instance.new("SelectionBox", workspace.Terrain)
     selectionBox.Color3 = Color3.new(0, 1, 0)
     selectionBox.LineThickness = 0.01
-
     rs.Heartbeat:Connect(function()
-        local sine = os.clock()
-        for _, target in ipairs(targets) do
-            local t = target[1]
-            if t and t.ReceiveAge == 0 then
-                selectionBox.Adornee = t
-                t.Velocity = Vector3.new(-25.1 + math.pi * math.sin(sine * 15), 25.1 + math.pi * math.sin(sine * 15), 25.1 + math.pi * math.sin(sine * 15))
-                t.RotVelocity = Vector3.new(math.pi / 6 * math.sin(sine * 15), math.pi / 6 * math.sin(sine * 15), math.pi / 6 * math.sin(sine * 15))
-            else
-                selectionBox.Adornee = nil
-            end
-        end
+    local sine = os.clock()
+    for _, target in ipairs(targets) do
+    local t = target[1]
+    if t and t.ReceiveAge == 0 then
+    selectionBox.Adornee = t
+    t.Velocity = Vector3.new(-25.1 + math.pi * math.sin(sine * 15), 25.1 + math.pi * math.sin(sine * 15), 25.1 + math.pi * math.sin(sine * 15))
+    t.RotVelocity = Vector3.new(math.pi / 6 * math.sin(sine * 15), math.pi / 6 * math.sin(sine * 15), math.pi / 6 * math.sin(sine * 15))
+    else
+    selectionBox.Adornee = nil
+    end
+    end
     end)
-
     mouse.Button1Down:Connect(function()
-        if holding then grab() end
+    if holding then grab() end
     end)
-
     tool.Equipped:Connect(function()
-        holding = true
+    holding = true
     end)
-
     tool.Unequipped:Connect(function()
-        drop()
+    drop()
     end)
-
     return tool
- end
-
- miscSection:Toggle({
+ 	end
+ 	miscSection:Toggle({
     Text = "Grab Bags",
     Description = "Gives you the Grab Bags tool and keeps it after respawn",
     Default = false,
     Callback = function(state)
-        grabToolEnabled = state
-
-        if state then
-            if not grabTool then
-                grabTool = createGrabTool()
-            end
-            grabTool.Parent = player.Backpack
-        else
-            if grabTool then
-                grabTool:Destroy()
-                grabTool = nil
-            end
-        end
+    grabToolEnabled = state
+    if state then
+    if not grabTool then
+    grabTool = createGrabTool()
     end
- })
-
- -- Reapply tool after respawn
- player.CharacterAdded:Connect(function()
+    grabTool.Parent = player.Backpack
+    else
+    if grabTool then
+    grabTool:Destroy()
+    grabTool = nil
+    end
+    end
+    end
+ 	})
+ 	player.CharacterAdded:Connect(function()
     if grabToolEnabled then
-        task.wait(1)
-        if grabTool then
-            grabTool.Parent = player.Backpack
-        else
-            grabTool = createGrabTool()
-            grabTool.Parent = player.Backpack
-        end
+    task.wait(1)
+    if grabTool then
+    grabTool.Parent = player.Backpack
+    else
+    grabTool = createGrabTool()
+    grabTool.Parent = player.Backpack
     end
- end)
-
- -- C Delete
- local deletedParts = {}
- local cDeleteConnection
-
- miscSection:Toggle({
+    end
+ 	end)
+ 	local deletedParts = {}
+ 	local cDeleteConnection
+ 	miscSection:Toggle({
     Text = "C Delete",
     Description = "Deletes objects you click while holding C, restores on untoggle",
     Default = false,
     Callback = function(state)
-        local uis = game:GetService("UserInputService")
-        local mouse = player:GetMouse()
-
-        if state then
-            deletedParts = {}
-            cDeleteConnection = mouse.Button1Down:Connect(function()
-                if uis:IsKeyDown(Enum.KeyCode.C) and mouse.Target then
-                    local target = mouse.Target
-                    if target:IsA("BasePart") then
-                        table.insert(deletedParts, {
-                            Name = target.Name,
-                            Size = target.Size,
-                            Position = target.Position,
-                            Orientation = target.Orientation,
-                            Color = target.Color,
-                            Material = target.Material,
-                            Transparency = target.Transparency,
-                            Reflectance = target.Reflectance,
-                            Anchored = target.Anchored,
-                            CanCollide = target.CanCollide,
-                            Parent = target.Parent,
-                            CFrame = target.CFrame
-                        })
-                        target:Destroy()
-                    end
-                end
-            end)
-        else
-            if cDeleteConnection then
-                cDeleteConnection:Disconnect()
-                cDeleteConnection = nil
-            end
-
-            for _, partData in ipairs(deletedParts) do
-                local part = Instance.new("Part")
-                for key, value in pairs(partData) do
-                    if key ~= "Parent" then
-                        part[key] = value
-                    end
-                end
-                part.Parent = partData.Parent
-            end
-            deletedParts = {}
-        end
-    end
- })
-
- -- No Jail Toggle
-    miscSection:Toggle({
-    Text = "No Jail",
-    State = false,
-    Callback = function(value)
-        local jailRemote = ReplicatedStorage:FindFirstChild("JailRemote")
-        if value then
-            if jailRemote then
-                jailRemote:Destroy()
-            end
-        end
-    end
+    local uis = game:GetService("UserInputService")
+    local mouse = player:GetMouse()
+    if state then
+    deletedParts = {}
+	cDeleteConnection = mouse.Button1Down:Connect(function()
+	if uis:IsKeyDown(Enum.KeyCode.C) and mouse.Target then
+    local target = mouse.Target
+    if target:IsA("BasePart") then
+    table.insert(deletedParts, {
+    Name = target.Name,
+    Size = target.Size,
+    Position = target.Position,
+	Orientation = target.Orientation,
+    Color = target.Color,
+    Material = target.Material,
+    Transparency = target.Transparency,
+    Reflectance = target.Reflectance,
+    Anchored = target.Anchored,
+    CanCollide = target.CanCollide,
+    Parent = target.Parent,
+    CFrame = target.CFrame
     })
-
-    -- No Rent Pay Toggle
-    local AntiRentPayEnabled = false
-    miscSection:Toggle({
-    Text = "No Rent Pay",
-    State = false,
-    Callback = function(value)
-        AntiRentPayEnabled = value
-        if value then
-            task.spawn(function()
-                while AntiRentPayEnabled do
-                    task.wait(1)
-                    local player = LocalPlayer
-                    local rentGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("RentGui")
-                    if rentGui then
-                        local rentScript = rentGui:FindFirstChild("LocalScript")
-                        if rentScript then
-                            rentScript.Disabled = true
-                            rentScript:Destroy()
-                        end
-                    end
-                end
-            end)
-        end
+    target:Destroy()
     end
-    })
-
+    end
+    end)
+    else
+    if cDeleteConnection then
+    cDeleteConnection:Disconnect()
+    cDeleteConnection = nil
+    end
+    for _, partData in ipairs(deletedParts) do
+    local part = Instance.new("Part")
+    for key, value in pairs(partData) do
+    if key ~= "Parent" then
+    part[key] = value
+    end
+    end
+    part.Parent = partData.Parent
+    end
+    deletedParts = {}
+    end
+    end
+ 	})
 -- Combat
-    -- Combat Tab --
     local combatTab = Window:Tab({ Text = "Combat" })
-
-    -- Gun Mods Section --
-    local gunModsSection = combatTab:Section({ Text = "Gun Mods" })
-
+    local gunModsSection = combatTab:Section({ Text = "Gun Options" })
     local player = game.Players.LocalPlayer
-
     local function getToolSettings()
 	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
 	if tool then
-		local success, settings = pcall(function()
-			return require(tool:FindFirstChild("Setting"))
-		end)
-		if success and type(settings) == "table" then
-			return settings
-		else
-			warn("Could not require settings from tool.")
-		end
+	local success, settings = pcall(function()
+	return require(tool:FindFirstChild("Setting"))
+	end)
+	if success and type(settings) == "table" then
+	return settings
 	else
-		warn("No tool found in character.")
+	warn("Could not require settings from tool.")
+	end
+	else
+	warn("No tool found in character.")
 	end
 	return nil
     end
-
     local function setInfiniteAmmo(state)
 	local settings = getToolSettings()
 	if settings then
-		if state then
-			settings.LimitedAmmoEnabled = false
-			settings.MaxAmmo = 9e9
-			settings.AmmoPerMag = 9e9
-			settings.Ammo = 9e9
-			print("Infinite Ammo enabled.")
-		else
-			print("Infinite Ammo disabled.")
-		end
+	if state then
+	settings.LimitedAmmoEnabled = false
+	settings.MaxAmmo = 9e9
+	settings.AmmoPerMag = 9e9
+	settings.Ammo = 9e9
+	print("Infinite Ammo enabled.")
+	else
+	print("Infinite Ammo disabled.")
+	end
 	end
     end
-
     local function setNoRecoil(state)
 	local settings = getToolSettings()
 	if settings then
-		if state then
-			settings.Recoil = 0
-			print("No Recoil enabled.")
-		else
-			print("No Recoil disabled.")
-		end
+	if state then
+	settings.Recoil = 0
+	print("No Recoil enabled.")
+	else
+	print("No Recoil disabled.")
+	end
 	end
     end
-
     local function setFullAuto(state)
 	local settings = getToolSettings()
 	if settings then
-		if state then
-			settings.Auto = true
-			print("Full Auto enabled.")
-		else
-			print("Full Auto disabled.")
-		end
+	if state then
+	settings.Auto = true
+	print("Full Auto enabled.")
+	else
+	print("Full Auto disabled.")
+	end
 	end
     end
-
     local function setInstantFire(state)
 	local settings = getToolSettings()
 	if settings then
-		if state then
-			settings.FireRate = 0
-			print("Instant Fire enabled.")
-		else
-			print("Instant Fire disabled.")
-		end
+	if state then
+	settings.FireRate = 0
+	print("Instant Fire enabled.")
+	else
+	print("Instant Fire disabled.")
+	end
 	end
     end
-
-    -- Add toggles to Gun Mods Section --
     gunModsSection:Toggle({
 	Text = "Infinite Ammo",
 	State = false,
 	Callback = function(state)
-		setInfiniteAmmo(state)
+	setInfiniteAmmo(state)
 	end
     })
-
     gunModsSection:Toggle({
 	Text = "No Recoil",
 	State = false,
 	Callback = function(state)
-		setNoRecoil(state)
+	setNoRecoil(state)
 	end
     })
-
     gunModsSection:Toggle({
 	Text = "Full Auto",
 	State = false,
 	Callback = function(state)
-		setFullAuto(state)
+	setFullAuto(state)
 	end
     })
-
     gunModsSection:Toggle({
 	Text = "Instant Fire",
 	State = false,
 	Callback = function(state)
-		setInstantFire(state)
+	setInstantFire(state)
 	end
     })
 
@@ -864,29 +741,22 @@
     local recoveryTab = Window:Tab({ Text = "Recovery" })
     local DupeSection = recoveryTab:Section({ Text = "Dupe" })
     local player = game:GetService("Players").LocalPlayer
-
-    -- Cooldown GUI
     local cooldownUI, cooldownLabel
     local cooldownSeconds = 35
-
     local function createCooldownUI()
 	if cooldownUI then return end
-
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "CooldownGUI"
 	screenGui.ResetOnSpawn = false
 	screenGui.IgnoreGuiInset = true
 	screenGui.Parent = player:WaitForChild("PlayerGui")
-
 	local frame = Instance.new("Frame", screenGui)
 	frame.Size = UDim2.new(0, 120, 0, 30)
 	frame.Position = UDim2.new(0.5, -60, 0, 10)
 	frame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 	frame.BackgroundTransparency = 0.2
 	frame.Name = "CooldownFrame"
-
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
-
 	local label = Instance.new("TextLabel", frame)
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
@@ -895,322 +765,268 @@
 	label.TextScaled = true
 	label.Text = "Cooldown"
 	label.Name = "CooldownLabel"
-
 	cooldownUI = screenGui
 	cooldownLabel = label
     end
-
     local function showCooldownUI()
 	createCooldownUI()
 	cooldownUI.Enabled = true
     end
-
     local function hideCooldownUI()
 	if cooldownUI then
-		cooldownUI.Enabled = false
+	cooldownUI.Enabled = false
 	end
     end
-
-    -- Teleport with seat
     local function TriggerSeat()
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	if humanoid then
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-				obj:Sit(humanoid)
-				return
-			end
-		end
+	for _, obj in pairs(workspace:GetDescendants()) do
+	if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+	obj:Sit(humanoid)
+	return
+	end
+	end
 	end
     end
-
     local function teleportTo(position)
 	TriggerSeat()
 	task.wait(1)
 	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if hrp then
-		hrp.CFrame = CFrame.new(position)
+	hrp.CFrame = CFrame.new(position)
 	end
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	if humanoid then
-		humanoid.Sit = false
+	humanoid.Sit = false
 	end
     end
-
-    -- Dupe logic
     local isOnCooldown = false
     local autoDupeEnabled = false
     local storedToolName = nil
-
     local function performDupe(tool)
 	if not tool then
-		warn("[Revamped City] No tool found to dupe.")
-		return false
+	warn("[Revamped City] No tool found to dupe.")
+	return false
 	end
-
 	local toolName = tool.Name
 	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return false end
-
 	local backpack = player:WaitForChild("Backpack")
 	local safes = workspace["1# Map"]["2 Crosswalks"].Safes:GetChildren()
 	local closestSafe, closestClicker, shortestDistance = nil, nil, math.huge
-
 	for _, safe in ipairs(safes) do
-		local clicker = safe:FindFirstChild("ChestClicker")
-		if clicker and clicker:IsA("BasePart") then
-			local distance = (hrp.Position - clicker.Position).Magnitude
-			if distance < shortestDistance then
-				shortestDistance = distance
-				closestSafe = safe
-				closestClicker = clicker
-			end
-		end
+	local clicker = safe:FindFirstChild("ChestClicker")
+	if clicker and clicker:IsA("BasePart") then
+	local distance = (hrp.Position - clicker.Position).Magnitude
+	if distance < shortestDistance then
+	shortestDistance = distance
+	closestSafe = safe
+	closestClicker = clicker
 	end
-
+	end
+	end
 	if not closestSafe or not closestClicker then
-		warn("[Revamped City] No nearby safe found.")
-		return false
+	warn("[Revamped City] No nearby safe found.")
+	return false
 	end
-
 	tool.Parent = backpack
 	teleportTo(closestClicker.Position + Vector3.new(0, 5, 0))
 	task.wait(0.5)
-
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	task.spawn(function() ReplicatedStorage.BackpackRemote:InvokeServer("Store", toolName) end)
 	task.spawn(function() ReplicatedStorage.Inventory:FireServer("Change", toolName, "Backpack", closestSafe) end)
-
 	task.wait(1.7)
 	ReplicatedStorage.BackpackRemote:InvokeServer("Grab", toolName)
-
 	game.StarterGui:SetCore("SendNotification", {
-		Title = "[Revamped City]",
-		Text = "Duped item stored!",
-		Duration = 2
+	Title = "[Revamped City]",
+	Text = "Duped item stored!",
+	Duration = 2
 	})
-
 	return true
     end
-
     local function startCooldown(seconds)
 	if isOnCooldown then return end
 	isOnCooldown = true
 	showCooldownUI()
-
 	for i = seconds, 1, -1 do
-		if cooldownLabel then cooldownLabel.Text = "Cooldown: " .. i end
-		task.wait(1)
+	if cooldownLabel then cooldownLabel.Text = "Cooldown: " .. i end
+	task.wait(1)
 	end
-
 	isOnCooldown = false
-
 	if not autoDupeEnabled then
-		hideCooldownUI()
+	hideCooldownUI()
 	end
     end
-
-    -- Manual dupe button
     DupeSection:Button({
 	Text = "Dupe Gun",
 	Callback = function()
-		if isOnCooldown then return end
-		local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-		if not tool then return end
-
-		storedToolName = tool.Name
-		task.spawn(function()
-			local success = performDupe(tool)
-			if success then startCooldown(cooldownSeconds) end
-		end)
+	if isOnCooldown then return end
+	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+	if not tool then return end
+	storedToolName = tool.Name
+	task.spawn(function()
+	local success = performDupe(tool)
+	if success then startCooldown(cooldownSeconds) end
+	end)
 	end
     })
-
-    -- AutoDupe toggle
     DupeSection:Toggle({
 	Text = "AutoDupe",
 	Callback = function(state)
-		autoDupeEnabled = state
-
-		if autoDupeEnabled then
-			showCooldownUI()
-			task.spawn(function()
-				while autoDupeEnabled do
-					if isOnCooldown then
-						task.wait(1)
-						continue
-					end
-
-					if not storedToolName then
-						local heldTool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-						if heldTool then
-							storedToolName = heldTool.Name
-							game.StarterGui:SetCore("SendNotification", {
-								Title = "[Revamped City]",
-								Text = "AutoDupe tool: " .. storedToolName,
-								Duration = 3
-							})
-						else
-							task.wait(1)
-							continue
-						end
-					end
-
-					local tool = player.Character and player.Character:FindFirstChild(storedToolName)
-						or player.Backpack:FindFirstChild(storedToolName)
-
-					if tool then
-						if tool:IsDescendantOf(player.Backpack) then
-							tool.Parent = player.Character
-							task.wait(0.5)
-						end
-
-						local success = performDupe(tool)
-						if success then startCooldown(cooldownSeconds) end
-					else
-						warn("[Revamped City] Tool with name '" .. storedToolName .. "' not found.")
-					end
-
-					while isOnCooldown and autoDupeEnabled do
-						task.wait(1)
-					end
-				end
-			end)
-		else
-			storedToolName = nil
-			if not isOnCooldown then
-				hideCooldownUI()
-			end
-		end
+	autoDupeEnabled = state
+	if autoDupeEnabled then
+	showCooldownUI()
+	task.spawn(function()
+	while autoDupeEnabled do
+	if isOnCooldown then
+	task.wait(1)
+	continue
+	end
+	if not storedToolName then
+	local heldTool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+	if heldTool then
+	storedToolName = heldTool.Name
+	game.StarterGui:SetCore("SendNotification", {
+	Title = "[Revamped City]",
+	Text = "AutoDupe tool: " .. storedToolName,
+	Duration = 3
+	})
+	else
+	task.wait(1)
+	continue
+	end
+	end
+	local tool = player.Character and player.Character:FindFirstChild(storedToolName)
+	or player.Backpack:FindFirstChild(storedToolName)
+	if tool then
+	if tool:IsDescendantOf(player.Backpack) then
+	tool.Parent = player.Character
+	task.wait(0.5)
+	end
+	local success = performDupe(tool)
+	if success then startCooldown(cooldownSeconds) end
+	else
+	warn("[Revamped City] Tool with name '" .. storedToolName .. "' not found.")
+	end
+	while isOnCooldown and autoDupeEnabled do
+	task.wait(1)
+	end
+	end
+	end)
+	else
+	storedToolName = nil
+	if not isOnCooldown then
+	hideCooldownUI()
+	end
+	end
 	end
     })
-
     local MoneySection = recoveryTab:Section({ Text = "Money", Side = "Right" })
-
     MoneySection:Button({
     Text = "Step 1",
     Callback = function()
-        local success, err = pcall(function()
-            loadstring(game:HttpGet("https://pastebin.com/raw/cuw4HhtJ"))()
-        end)
-        if not success then
-            warn("Failed to load Step 1 script:", err)
-        end
+    local success, err = pcall(function()
+    loadstring(game:HttpGet("https://pastebin.com/raw/cuw4HhtJ"))()
+    end)
+    if not success then
+    warn("Failed to load Step 1 script:", err)
+    end
     end
     })
-
     MoneySection:Button({
     Text = "Step 2",
     Callback = function()
-        local success, err = pcall(function()
-            loadstring(game:HttpGet("http://pastebin.com/raw/ndC2kNgP"))()
-        end)
-        if not success then
-            warn("Failed to load Step 2 script:", err)
-        end
+    local success, err = pcall(function()
+    loadstring(game:HttpGet("http://pastebin.com/raw/ndC2kNgP"))()
+	end)
+    if not success then
+    warn("Failed to load Step 2 script:", err)
+    end
     end
     })
-
     MoneySection:Button({
     Text = "Step 3",
     Callback = function()
-        local success, err = pcall(function()
-            loadstring(game:HttpGet("https://pastebin.com/raw/RnqJLmSW"))()
-        end)
-        if not success then
-            warn("Failed to load Step 3 script:", err)
-        end
+    local success, err = pcall(function()
+    loadstring(game:HttpGet("https://pastebin.com/raw/RnqJLmSW"))()
+    end)
+    if not success then
+    warn("Failed to load Step 3 script:", err)
+    end
     end
     })
- local ATMSection = recoveryTab:Section({ Text = "ATM's Section" })
-
- local player = game:GetService("Players").LocalPlayer
- local TweenService = game:GetService("TweenService")
- local RunService = game:GetService("RunService")
- local UserInputService = game:GetService("UserInputService")
-
- local atmLocations = {
-    Vector3.new(-1012, 254, -1155),
-    Vector3.new(-720, 287, -791),
-    Vector3.new(-397, 254, -1108),
- }
-
- local drillLocation = Vector3.new(-396, 340, -562)
- local roofPlacementLocation = Vector3.new(-78, 395, -715)
-
- local autoGrabEnabled = false
- local autoGrabConnection = nil
-
- local movementDisabled = false
- local function setMovementEnabled(enabled)
-    movementDisabled = not enabled
- end
-
- UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if movementDisabled and not gameProcessed then
-        if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseMovement then
-            local blockedKeys = {
-                Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D,
-                Enum.KeyCode.Up, Enum.KeyCode.Down, Enum.KeyCode.Left, Enum.KeyCode.Right,
-                Enum.KeyCode.Space, Enum.KeyCode.LeftShift, Enum.KeyCode.LeftControl
-            }
-            for _, key in ipairs(blockedKeys) do
-                if input.KeyCode == key then
-                    return
-                end
-            end
-        end
+ 	local ATMSection = recoveryTab:Section({ Text = "ATM's Section", Side = "Right" })
+ 	local player = game:GetService("Players").LocalPlayer
+ 	local TweenService = game:GetService("TweenService")
+ 	local RunService = game:GetService("RunService")
+ 	local UserInputService = game:GetService("UserInputService")
+ 	local atmLocations = {
+ 	Vector3.new(-1012, 254, -1155),
+ 	Vector3.new(-720, 287, -791),
+ 	Vector3.new(-397, 254, -1108),
+ 	}
+ 	local drillLocation = Vector3.new(-396, 340, -562)
+ 	local roofPlacementLocation = Vector3.new(-78, 395, -715)
+ 	local autoGrabEnabled = false
+ 	local autoGrabConnection = nil
+ 	local movementDisabled = false
+ 	local function setMovementEnabled(enabled)
+ 	movementDisabled = not enabled
+ 	end
+ 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+ 	if movementDisabled and not gameProcessed then
+ 	if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseMovement then
+ 	local blockedKeys = {
+    Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D,
+    Enum.KeyCode.Up, Enum.KeyCode.Down, Enum.KeyCode.Left, Enum.KeyCode.Right,
+    Enum.KeyCode.Space, Enum.KeyCode.LeftShift, Enum.KeyCode.LeftControl
+    }
+    for _, key in ipairs(blockedKeys) do
+    if input.KeyCode == key then
+    return
     end
- end)
-
- local function TriggerSeat()
+    end
+	end
+    end
+ 	end)
+ 	local function TriggerSeat()
     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
     if humanoid then
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-                obj:Sit(humanoid)
-                return true
-            end
-        end
+    for _, obj in pairs(workspace:GetDescendants()) do
+    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+    obj:Sit(humanoid)
+    return true
+    end
+    end
     end
     return false
- end
-
- local function teleportTo(positionOrCFrame)
+ 	end
+ 	local function teleportTo(positionOrCFrame)
     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not humanoid or not hrp then return end
-
     setMovementEnabled(false)
-
     local sat = TriggerSeat()
     if sat then
-        task.wait(1)
-    end
-
-    if typeof(positionOrCFrame) == "Vector3" then
-        hrp.CFrame = CFrame.new(positionOrCFrame)
-    elseif typeof(positionOrCFrame) == "CFrame" then
-        hrp.CFrame = positionOrCFrame
-    end
-
     task.wait(1)
-
+    end
+    if typeof(positionOrCFrame) == "Vector3" then
+    hrp.CFrame = CFrame.new(positionOrCFrame)
+    elseif typeof(positionOrCFrame) == "CFrame" then
+    hrp.CFrame = positionOrCFrame
+    end
+    task.wait(1)
     humanoid.Sit = false
     task.wait(1)
-
     setMovementEnabled(true)
-
     if (hrp.Position - (typeof(positionOrCFrame) == "Vector3" and positionOrCFrame or positionOrCFrame.Position)).Magnitude > 10 then
-        teleportTo(positionOrCFrame)
+    teleportTo(positionOrCFrame)
     end
- end
-
- local function sexyNotification(message, duration)
+ 	end
+ 	local function sexyNotification(message, duration)
     local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
     screenGui.Name = "SexyNotification"
     screenGui.ResetOnSpawn = false
-
     local textLabel = Instance.new("TextLabel", screenGui)
     textLabel.Size = UDim2.new(0.4, 0, 0.08, 0)
     textLabel.Position = UDim2.new(0.3, 0, 0.9, 0)
@@ -1221,90 +1037,76 @@
     textLabel.Font = Enum.Font.GothamBold
     textLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     textLabel.BorderSizePixel = 0
-
     local fadeIn = TweenService:Create(textLabel, TweenInfo.new(0.5), {BackgroundTransparency = 0.2, TextTransparency = 0})
     fadeIn:Play()
     fadeIn.Completed:Wait()
-
     task.wait(duration or 2)
-
     local fadeOut = TweenService:Create(textLabel, TweenInfo.new(0.5), {BackgroundTransparency = 1, TextTransparency = 1})
     fadeOut:Play()
     fadeOut.Completed:Wait()
-
     screenGui:Destroy()
- end
-
-  local function getPromptBasePart(prompt)
+ 	end
+  	local function getPromptBasePart(prompt)
     local current = prompt.Parent
     while current and not current:IsA("BasePart") do
-        current = current.Parent
+    current = current.Parent
     end
     return current
- end
-
- local function findPromptNearPosition(filterText, position, maxDistance)
+ 	end
+ 	local function findPromptNearPosition(filterText, position, maxDistance)
     maxDistance = maxDistance or 15
     local closestPrompt = nil
     local closestDistance = math.huge
-
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") and obj.Enabled then
-            local action = string.lower(obj.ActionText or "")
-            local object = string.lower(obj.ObjectText or "")
-            if string.find(action, filterText) or string.find(object, filterText) then
-                local part = getPromptBasePart(obj)
-                if part then
-                    local dist = (part.Position - position).Magnitude
-                    if dist <= maxDistance and dist < closestDistance then
-                        closestDistance = dist
-                        closestPrompt = obj
-                    end
-                end
-            end
-        end
+    if obj:IsA("ProximityPrompt") and obj.Enabled then
+    local action = string.lower(obj.ActionText or "")
+    local object = string.lower(obj.ObjectText or "")
+    if string.find(action, filterText) or string.find(object, filterText) then
+    local part = getPromptBasePart(obj)
+    if part then
+    local dist = (part.Position - position).Magnitude
+    if dist <= maxDistance and dist < closestDistance then
+    closestDistance = dist
+    closestPrompt = obj
     end
-
+    end
+    end
+    end
+    end
     return closestPrompt
- end
-
- local function firePromptWithHold(prompt)
+ 	end
+ 	local function firePromptWithHold(prompt)
     if not prompt then return false end
     if prompt.HoldDuration and prompt.HoldDuration > 0 then
-        prompt:InputHoldBegin()
-        task.wait(prompt.HoldDuration)
-        prompt:InputHoldEnd()
+    prompt:InputHoldBegin()
+    task.wait(prompt.HoldDuration)
+    prompt:InputHoldEnd()
     else
-        fireproximityprompt(prompt, true)
-        task.wait(0.1)
-        fireproximityprompt(prompt, false)
+    fireproximityprompt(prompt, true)
+    task.wait(0.1)
+    fireproximityprompt(prompt, false)
     end
     return true
- end
-
- local function hasTool(toolName)
+ 	end
+ 	local function hasTool(toolName)
     return player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
- end
-
- local function isHoldingTool(toolName)
+ 	end
+ 	local function isHoldingTool(toolName)
     return player.Character and player.Character:FindFirstChild(toolName) ~= nil
- end
-
- local function equipTool(toolName)
+ 	end
+ 	local function equipTool(toolName)
     local tool = player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
     if tool and player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid:EquipTool(tool)
-        task.wait(0.3)
-        return true
+    player.Character.Humanoid:EquipTool(tool)
+    task.wait(0.3)
+    return true
     end
     return false
- end
-
- local function countdownNotification(seconds)
+ 	end
+ 	local function countdownNotification(seconds)
     local gui = Instance.new("ScreenGui", player.PlayerGui)
     gui.Name = "CountdownNotification"
     gui.ResetOnSpawn = false
-
     local label = Instance.new("TextLabel", gui)
     label.Size = UDim2.new(0.4, 0, 0.08, 0)
     label.Position = UDim2.new(0.3, 0, 0.9, 0)
@@ -1313,542 +1115,551 @@
     label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.Font = Enum.Font.GothamBold
     label.TextScaled = true
-
     for i = seconds, 1, -1 do
-        label.Text = "⏳ " .. i .. "s remaining..."
-        task.wait(1)
+    label.Text = "⏳ " .. i .. "s remaining..."
+    task.wait(1)
     end
     gui:Destroy()
- end
-
- local function findNearestPrompt(filterText)
+ 	end
+ 	local function findNearestPrompt(filterText)
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
-
     local maxDistance = 15
     local closestPrompt = nil
     local closestDistance = math.huge
-
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") and obj.Enabled then
-            local action = string.lower(obj.ActionText or "")
-            local object = string.lower(obj.ObjectText or "")
-            if string.find(action, filterText) or string.find(object, filterText) then
-                local part = getPromptBasePart(obj)
-                if part then
-                    local dist = (part.Position - root.Position).Magnitude
-                    if dist <= maxDistance and dist < closestDistance then
-                        closestDistance = dist
-                        closestPrompt = obj
-                    end
-                end
-            end
-        end
+    local action = string.lower(obj.ActionText or "")
+    local object = string.lower(obj.ObjectText or "")
+	if string.find(action, filterText) or string.find(object, filterText) then
+    local part = getPromptBasePart(obj)
+    if part then
+    local dist = (part.Position - root.Position).Magnitude
+    if dist <= maxDistance and dist < closestDistance then
+    closestDistance = dist
+    closestPrompt = obj
     end
-
+    end
+    end
+    end
+    end
     return closestPrompt
- end
-
- local function grabATM()
+ 	end
+ 	local function grabATM()
     local hasDrillBackpack = player.Backpack:FindFirstChild("Drill") ~= nil
     local isDrillEquipped = isHoldingTool("Drill")
-
-    -- Check if buy drill prompt exists first
     local buyDrillPrompt = findPromptNearPosition("buy drill", drillLocation, 15)
-
     if not hasDrillBackpack and not isDrillEquipped then
-        if buyDrillPrompt then
-            teleportTo(drillLocation)
-
-            if not firePromptWithHold(buyDrillPrompt) then
-                sexyNotification("❌ Failed to buy Drill", 2)
-                return false
-            end
-            task.wait(1.5)
-        else
-            -- No prompt to buy drill, cannot buy, error out
-            sexyNotification("❌ No Drill to Buy Here!", 2)
-            return false
-        end
-    elseif hasDrillBackpack and not isDrillEquipped then
-        -- Equip drill if in backpack but not holding
-        teleportTo(drillLocation)
-        if not equipTool("Drill") then
-            sexyNotification("❌ Couldn't equip Drill", 2)
-            return false
-        end
+    if buyDrillPrompt then
+    teleportTo(drillLocation)
+    if not firePromptWithHold(buyDrillPrompt) then
+    sexyNotification("❌ Failed to buy Drill", 2)
+    return false
     end
-
-    -- At this point, you either have drill or holding it
-    -- Teleport to drill location and fire drill prompt
-
+    task.wait(1.5)
+    else
+    sexyNotification("❌ No Drill to Buy Here!", 2)
+    return false
+    end
+    elseif hasDrillBackpack and not isDrillEquipped then
+    teleportTo(drillLocation)
+    if not equipTool("Drill") then
+    sexyNotification("❌ Couldn't equip Drill", 2)
+    return false
+    end
+    end
     teleportTo(drillLocation)
     local drillPrompt = findPromptNearPosition("drill", drillLocation, 15)
     if not drillPrompt or not firePromptWithHold(drillPrompt) then
-        sexyNotification("❌ Drill interaction failed", 2)
-        return false
+    sexyNotification("❌ Drill interaction failed", 2)
+    return false
     end
-
-    -- Find ATM prompt & location
     local atmPos, atmPrompt, atmPromptBasePart
     for _, pos in ipairs(atmLocations) do
-        local prompt = findPromptNearPosition("atm", pos, 15)
-        if prompt then
-            atmPos = pos
-            atmPrompt = prompt
-            atmPromptBasePart = getPromptBasePart(prompt)
-            break
-        end
+    local prompt = findPromptNearPosition("atm", pos, 15)
+    if prompt then
+    atmPos = pos
+	atmPrompt = prompt
+    atmPromptBasePart = getPromptBasePart(prompt)
+    break
     end
-
+    end
     if not atmPrompt or not atmPromptBasePart then
-        sexyNotification("❌ No ATM Prompt Found", 2)
-        return false
+    sexyNotification("❌ No ATM Prompt Found", 2)
+    return false
     end
-
-    -- Teleport to ATM & fire prompt
     teleportTo(atmPos)
     if not firePromptWithHold(atmPrompt) then
-        sexyNotification("❌ Failed to fire ATM Prompt", 2)
-        teleportTo(roofPlacementLocation)
-        return false
+    sexyNotification("❌ Failed to fire ATM Prompt", 2)
+    teleportTo(roofPlacementLocation)
+    return false
     end
-
     teleportTo(roofPlacementLocation)
     countdownNotification(62)
-
-    -- Teleport back exactly to prompt base part CFrame
     teleportTo(atmPromptBasePart.CFrame)
-
-    -- Check prompt again to confirm
     local checkPrompt = findPromptNearPosition("atm", atmPromptBasePart.Position, 15)
     if not checkPrompt then
-        sexyNotification("😢 Someone Stole Your Safe :(", 3)
-        teleportTo(roofPlacementLocation)
-        return false
+    sexyNotification("😢 Someone Stole Your Safe :(", 3)
+    teleportTo(roofPlacementLocation)
+    return false
     end
-
     local pickupPrompt = findNearestPrompt("pick up")
     if not pickupPrompt or not firePromptWithHold(pickupPrompt) then
-        sexyNotification("❌ Pickup Failed", 2)
-        teleportTo(roofPlacementLocation)
-        return false
+    sexyNotification("❌ Pickup Failed", 2)
+    teleportTo(roofPlacementLocation)
+    return false
     end
-
     if not hasTool("ATM") then
-        equipTool("ATM")
+    equipTool("ATM")
     end
-
     teleportTo(roofPlacementLocation)
     sexyNotification("🛑 Drop the ATM to stop the script.", 5)
     return true
- end
-
- ATMSection:Button({
+ 	end
+ 	ATMSection:Button({
     Text = "Grab A ATM",
     Callback = function()
-        grabATM()
+    grabATM()
     end
- })
-
- ATMSection:Toggle({
+ 	})
+ 	ATMSection:Toggle({
     Text = "Auto Grab Safe",
     Default = false,
     Callback = function(state)
-        autoGrabEnabled = state
-
-        if autoGrabConnection then
-            autoGrabConnection:Disconnect()
-            autoGrabConnection = nil
-        end
-
-        if autoGrabEnabled then
-            autoGrabConnection = RunService.Heartbeat:Connect(function()
-                if not grabATM() then
-                    autoGrabEnabled = false
-                    if autoGrabConnection then
-                        autoGrabConnection:Disconnect()
-                        autoGrabConnection = nil
-                    end
-                end
-            end)
-        end
+    autoGrabEnabled = state
+    if autoGrabConnection then
+    autoGrabConnection:Disconnect()
+    autoGrabConnection = nil
     end
- })
+    if autoGrabEnabled then
+    autoGrabConnection = RunService.Heartbeat:Connect(function()
+    if not grabATM() then
+    autoGrabEnabled = false
+    if autoGrabConnection then
+    autoGrabConnection:Disconnect()
+    autoGrabConnection = nil
+    end
+    end
+    end)
+    end
+    end
+ 	})
+	local bankSection = recoveryTab:Section({ Text = "Bank Options" })
+	-- Bronx ATM Toggle
+	local clonedATMGui = nil
+	bankSection:Toggle({
+    Text = "Bronx ATM",
+    Callback = function(isToggled)
+    local player = game.Players.LocalPlayer
+    local lighting = game:GetService("Lighting")
+    local atmGui = lighting:FindFirstChild("Assets") and lighting.Assets:FindFirstChild("GUI") and lighting.Assets.GUI:FindFirstChild("ATMGui")
+    if isToggled then
+    if atmGui then
+    clonedATMGui = atmGui:Clone()
+    clonedATMGui.Parent = player:WaitForChild("PlayerGui")
+    else
+    warn("ATM GUI not found.")
+    end
+    else
+    if clonedATMGui then
+    clonedATMGui:Destroy()
+    clonedATMGui = nil
+    end
+    end
+    end
+	})
+	-- Single input box for amount
+	local amount = 0
+	bankSection:Input({
+    Placeholder = "Enter Amount",
+    Flag = "TransactionAmount",
+    Callback = function(input)
+    amount = tonumber(input) or 0
+    end
+    })
+	-- Deposit toggle with loop
+	local depositLoop
+	bankSection:Toggle({
+    Text = "Deposit (30K Max)",
+    Default = false,
+    Callback = function(state)
+    if state then
+    depositLoop = game:GetService("RunService").Heartbeat:Connect(function()
+    game:GetService("ReplicatedStorage").BankAction:FireServer("depo", amount)
+    v0:Notify({ Title = "Deposit", Content = "Deposited $" .. amount, Duration = 3 })
+    wait(4)
+    end)
+    else
+    if depositLoop then
+    depositLoop:Disconnect()
+    depositLoop = nil
+    end
+    end
+    end
+	})
+	-- Withdrawal toggle with loop
+	local withdrawLoop
+	bankSection:Toggle({
+    Text = "Withdrawal (90K Max)",
+    Default = false,
+    Callback = function(state)
+    if state then
+    withdrawLoop = game:GetService("RunService").Heartbeat:Connect(function()
+    game:GetService("ReplicatedStorage").BankAction:FireServer("with", amount)
+    v0:Notify({ Title = "Withdraw", Content = "Withdrew $" .. amount, Duration = 3 })
+    wait(4)
+    end)
+    else
+    if withdrawLoop then
+    withdrawLoop:Disconnect()
+    withdrawLoop = nil
+    end
+    end
+    end
+	})
+	-- Money Drop toggle with loop
+	local dropLoop
+	bankSection:Toggle({
+    Text = "Money Drop (10K Max)",
+    Default = false,
+    Callback = function(state)
+    if state then
+    dropLoop = game:GetService("RunService").Heartbeat:Connect(function()
+    game:GetService("ReplicatedStorage"):WaitForChild("BankProcessRemote"):InvokeServer("Drop", amount)
+    v0:Notify({ Title = "Money Drop", Content = "Dropped $" .. amount, Duration = 2 })
+    wait(4)
+    end)
+    else
+    if dropLoop then
+    dropLoop:Disconnect()
+    dropLoop = nil
+    end
+    end
+    end
+	})
 
-
-    
---
 -- Visuals  
- -- Services
- local Players = game:GetService("Players")
- local RunService = game:GetService("RunService")
- local Camera = workspace.CurrentCamera
-
- -- UI Setup
- local VisualTab = Window:Tab({ Text = "Visual" })
- local ESPSection = VisualTab:Section({ Text = "ESP Options" })
-
- -- Variables
- local boxEspEnabled = false
- local nameEspEnabled = false
- local healthEspEnabled = false
- local friendCheckEnabled = false
- local EspList = {}
- local yOffset = 33
-
- -- ESP Functions
- local function createESP(Player)
+ 	local Players = game:GetService("Players")
+ 	local RunService = game:GetService("RunService")
+ 	local Camera = workspace.CurrentCamera
+ 	local VisualTab = Window:Tab({ Text = "Visual" })
+ 	local ESPSection = VisualTab:Section({ Text = "ESP Options" })
+ 	local boxEspEnabled = false
+ 	local nameEspEnabled = false
+ 	local healthEspEnabled = false
+ 	local friendCheckEnabled = false
+ 	local EspList = {}
+ 	local yOffset = 33
+ 	local function createESP(Player)
     local Box = Drawing.new("Square")
     Box.Thickness = 1
     Box.Filled = false
-
     local function setColor()
-        if friendCheckEnabled and Players.LocalPlayer:IsFriendsWith(Player.UserId) then
-            Box.Color = Color3.fromRGB(162, 97, 243) -- Purple for friends
-        else
-            Box.Color = Color3.fromRGB(44, 84, 212) -- Baby blue
-        end
+    if friendCheckEnabled and Players.LocalPlayer:IsFriendsWith(Player.UserId) then
+    Box.Color = Color3.fromRGB(162, 97, 243) -- Purple for friends
+    else
+    Box.Color = Color3.fromRGB(44, 84, 212) -- Baby blue
     end
-
+    end
     local function update()
-        local Character = Player.Character
-        if Character then
-            local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-            if Humanoid and Humanoid.Health > 0 then
-                local Pos, OnScreen = Camera:WorldToViewportPoint(Character.Head.Position)
-                if OnScreen then
-                    Box.Size = Vector2.new(2450 / Pos.Z, 3850 / Pos.Z)
-                    Box.Position = Vector2.new(Pos.X - Box.Size.X / 2, Pos.Y - Box.Size.Y / 9)
-                    Box.Visible = boxEspEnabled
-                    setColor()
-                    return
-                end
-            end
-        end
-        Box.Visible = false
+    local Character = Player.Character
+    if Character then
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid and Humanoid.Health > 0 then
+    local Pos, OnScreen = Camera:WorldToViewportPoint(Character.Head.Position)
+    if OnScreen then
+    Box.Size = Vector2.new(2450 / Pos.Z, 3850 / Pos.Z)
+    Box.Position = Vector2.new(Pos.X - Box.Size.X / 2, Pos.Y - Box.Size.Y / 9)
+    Box.Visible = boxEspEnabled
+    setColor()
+    return
     end
-
+    end
+    end
+    Box.Visible = false
+    end
     update()
-
     local Connection1 = Player.CharacterAdded:Connect(update)
     local Connection2 = Player.CharacterRemoving:Connect(function() Box.Visible = false end)
-
     return {
-        update = update,
-        disconnect = function()
-            Box:Remove()
-            Connection1:Disconnect()
-            Connection2:Disconnect()
-        end,
-        setColor = setColor
+    update = update,
+    disconnect = function()
+    Box:Remove()
+    Connection1:Disconnect()
+    Connection2:Disconnect()
+    end,
+    setColor = setColor
     }
- end
-
- local function createNameESP(Player)
+ 	end
+ 	local function createNameESP(Player)
     local Name = Drawing.new("Text")
     Name.Text = Player.Name
     Name.Size = 10
     Name.Outline = true
     Name.Center = true
-
     local function setColor()
-        if friendCheckEnabled and Players.LocalPlayer:IsFriendsWith(Player.UserId) then
-            Name.Color = Color3.fromRGB(162, 97, 243)
-        else
-            Name.Color = Color3.fromRGB(44, 84, 212)
-        end
+    if friendCheckEnabled and Players.LocalPlayer:IsFriendsWith(Player.UserId) then
+    Name.Color = Color3.fromRGB(162, 97, 243)
+    else
+    Name.Color = Color3.fromRGB(44, 84, 212)
     end
-
+    end
     local function update()
-        local Character = Player.Character
-        if Character then
-            local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-            if Humanoid and Humanoid.Health > 0 then
-                local Pos, OnScreen = Camera:WorldToViewportPoint(Character.Head.Position)
-                if OnScreen then
-                    Name.Position = Vector2.new(Pos.X, Pos.Y - yOffset)
-                    Name.Visible = nameEspEnabled
-                    setColor()
-                    return
-                end
-            end
-        end
-        Name.Visible = false
+    local Character = Player.Character
+    if Character then
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid and Humanoid.Health > 0 then
+    local Pos, OnScreen = Camera:WorldToViewportPoint(Character.Head.Position)
+    if OnScreen then
+    Name.Position = Vector2.new(Pos.X, Pos.Y - yOffset)
+    Name.Visible = nameEspEnabled
+    setColor()
+    return
     end
-
+    end
+    end
+    Name.Visible = false
+    end
     update()
-
     local Connection1 = Player.CharacterAdded:Connect(update)
     local Connection2 = Player.CharacterRemoving:Connect(function() Name.Visible = false end)
-
     return {
-        update = update,
-        disconnect = function()
-            Name:Remove()
-            Connection1:Disconnect()
-            Connection2:Disconnect()
-        end,
-        setColor = setColor,
-        Name = Name
+    update = update,
+    disconnect = function()
+    Name:Remove()
+    Connection1:Disconnect()
+    Connection2:Disconnect()
+    end,
+    setColor = setColor,
+    Name = Name
     }
- end
-
- local function createHealthBar(Player)
+ 	end
+ 	local function createHealthBar(Player)
     if Player == Players.LocalPlayer then return end
-
     local function addBar()
-        local Character = Player.Character
-        if not Character then return end
-        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-        local Head = Character:FindFirstChild("Head")
-        if not (Humanoid and Head) then return end
-
-        local gui = Instance.new("BillboardGui")
-        gui.Name = "HealthBar"
-        gui.Adornee = Head
-        gui.Size = UDim2.new(5, 0, .3, 0)
-        gui.StudsOffset = Vector3.new(0, -5.7, 0)
-        gui.AlwaysOnTop = true
-        gui.Parent = Head
-
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(Humanoid.Health / Humanoid.MaxHealth, 0, 1, 0)
-        frame.BackgroundColor3 = Color3.fromRGB(44, 84, 212)
-        frame.BorderSizePixel = 0
-        frame.Parent = gui
-
-        Humanoid.HealthChanged:Connect(function()
-            if frame then
-                frame.Size = UDim2.new(Humanoid.Health / Humanoid.MaxHealth, 0, 1, 0)
-            end
-        end)
+    local Character = Player.Character
+    if not Character then return end
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    local Head = Character:FindFirstChild("Head")
+    if not (Humanoid and Head) then return end
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "HealthBar"
+    gui.Adornee = Head
+    gui.Size = UDim2.new(5, 0, .3, 0)
+    gui.StudsOffset = Vector3.new(0, -5.7, 0)
+    gui.AlwaysOnTop = true
+    gui.Parent = Head
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(Humanoid.Health / Humanoid.MaxHealth, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(44, 84, 212)
+    frame.BorderSizePixel = 0
+    frame.Parent = gui
+    Humanoid.HealthChanged:Connect(function()
+    if frame then
+    frame.Size = UDim2.new(Humanoid.Health / Humanoid.MaxHealth, 0, 1, 0)
     end
-
-    if Player.Character then
-        addBar()
-    end
-
-    Player.CharacterAdded:Connect(function()
-        task.wait(0.5)
-        addBar()
     end)
- end
-
- -- ESP Toggles
- ESPSection:Toggle({
+    end
+    if Player.Character then
+    addBar()
+    end
+    Player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    addBar()
+    end)
+ 	end
+ 	-- ESP Toggles
+ 	ESPSection:Toggle({
     Text = "Enable Box ESP",
     State = false,
     Callback = function(state)
-        boxEspEnabled = state
-        for _, esp in ipairs(EspList) do
-            esp.update()
-        end
+    boxEspEnabled = state
+    for _, esp in ipairs(EspList) do
+    esp.update()
     end
- })
-
- ESPSection:Toggle({
+    end
+ 	})
+ 	ESPSection:Toggle({
     Text = "Enable Names ESP",
     State = false,
     Callback = function(state)
-        nameEspEnabled = state
-        for _, esp in ipairs(EspList) do
-            if esp.Name then
-                esp.Name.Visible = state
-            end
-        end
+    nameEspEnabled = state
+    for _, esp in ipairs(EspList) do
+    if esp.Name then
+    esp.Name.Visible = state
     end
- })
-
- ESPSection:Toggle({
+    end
+    end
+ 	})
+ 	ESPSection:Toggle({
     Text = "Enable Health ESP",
     State = false,
     Callback = function(state)
-        healthEspEnabled = state
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= Players.LocalPlayer then
-                if state then
-                    createHealthBar(player)
-                else
-                    if player.Character and player.Character:FindFirstChild("Head") then
-                        local hb = player.Character.Head:FindFirstChild("HealthBar")
-                        if hb then hb:Destroy() end
-                    end
-                end
-            end
-        end
+    healthEspEnabled = state
+    for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= Players.LocalPlayer then
+    if state then
+    createHealthBar(player)
+    else
+    if player.Character and player.Character:FindFirstChild("Head") then
+    local hb = player.Character.Head:FindFirstChild("HealthBar")
+    if hb then hb:Destroy() end
     end
- })
-
- ESPSection:Toggle({
+    end
+    end
+    end
+    end
+ 	})
+ 	ESPSection:Toggle({
     Text = "Friend Check (Purple ESP)",
     State = false,
     Callback = function(state)
-        friendCheckEnabled = state
-        for _, esp in ipairs(EspList) do
-            if esp.setColor then
-                esp.setColor()
-            end
-        end
-    end
- })
-
- -- Initialization
- local function createAllESP()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
-            table.insert(EspList, createESP(player))
-            table.insert(EspList, createNameESP(player))
-            if healthEspEnabled then
-                createHealthBar(player)
-            end
-        end
-    end
- end
-
- Players.PlayerAdded:Connect(function(player)
-    if player ~= Players.LocalPlayer then
-        table.insert(EspList, createESP(player))
-        table.insert(EspList, createNameESP(player))
-        if healthEspEnabled then
-            createHealthBar(player)
-        end
-    end
- end)
-
- createAllESP()
-
- RunService.RenderStepped:Connect(function()
+    friendCheckEnabled = state
     for _, esp in ipairs(EspList) do
-        esp.update()
+    if esp.setColor then
+    esp.setColor()
     end
- end)
-
-
-    -- Effects Section
+    end
+    end
+ 	})
+ 	local function createAllESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= Players.LocalPlayer then
+    table.insert(EspList, createESP(player))
+    table.insert(EspList, createNameESP(player))
+    if healthEspEnabled then
+    createHealthBar(player)
+    end
+    end
+    end
+ 	end
+ 	Players.PlayerAdded:Connect(function(player)
+    if player ~= Players.LocalPlayer then
+    table.insert(EspList, createESP(player))
+    table.insert(EspList, createNameESP(player))
+    if healthEspEnabled then
+    createHealthBar(player)
+    end
+    end
+ 	end)
+ 	createAllESP()
+ 	RunService.RenderStepped:Connect(function()
+    for _, esp in ipairs(EspList) do
+    esp.update()
+    end
+ 	end)
     local EffectsSection = VisualTab:Section({ Text = "Effects Options", Side = "Right" })
-
-    -- No Camera Shake Button
     EffectsSection:Button({
     Text = "Anti-CameraShake",
     Description = "Disables the camera shake effect permanently",
     Callback = function()
-        local v155 = 0 - 0
-        local v156
-        while true do
-            if (v155 == 1) then
-                task.spawn(
-                    function()
-                        while true do
-                            task.wait(1)
-                            v156()
-                        end
-                    end
-                )
-                break
-            end
-            if (0 == v155) then
-                v156 = nil
-                function v156()
-                    local v562 = 580 - (361 + 219)
-                    local v563
-                    while true do
-                        if (v562 == 0) then
-                            v563 = game.Players.LocalPlayer
-                            if (v563 and v563.Character) then
-                                local v706 = 320 - (53 + 267)
-                                local v707
-                                while true do
-                                    if (v706 == 0) then
-                                        v707 = v563.Character:FindFirstChild("CameraBobbing")
-                                        if v707 then
-                                            v707:Destroy()
-                                        end
-                                        break
-                                    end
-                                end
-                            end
-                            break
-                        end
-                    end
-                end
-                v155 = 1 + 0
-            end
-        end
+    local v155 = 0 - 0
+    local v156
+    while true do
+    if (v155 == 1) then
+    task.spawn(
+    function()
+    while true do
+    task.wait(1)
+    v156()
+    end
+    end
+    )
+    break
+    end
+	if (0 == v155) then
+    v156 = nil
+    function v156()
+    local v562 = 580 - (361 + 219)
+    local v563
+    while true do
+    if (v562 == 0) then
+    v563 = game.Players.LocalPlayer
+    if (v563 and v563.Character) then
+    local v706 = 320 - (53 + 267)
+    local v707
+    while true do
+    if (v706 == 0) then
+    v707 = v563.Character:FindFirstChild("CameraBobbing")
+	if v707 then
+    v707:Destroy()
+    end
+	break
+	end
+	end
+    end
+    break
+    end
+    end
+    end
+    v155 = 1 + 0
+    end
+    end
     end
     })
-
-    -- FPS Boost Button
     EffectsSection:Button({
     Text = "Boost FPS (Potato PC)",
     Description = "Deletes all specific effects from Lighting permanently",
     Callback = function()
-        local function v7()
-            if game.Lighting then
-                for v518, v519 in pairs(game.Lighting:GetChildren()) do
-                    if (v519:IsA("PostEffect") or v519:IsA("BloomEffect") or v519:IsA("SunRaysEffect") or
-                        v519:IsA("DepthOfFieldEffect")) then
-                        pcall(function()
-                            v519:Destroy()
-                        end)
-                    end
-                end
-            end
-        end
-        local function v8(v144)
-            game.Lighting.ClockTime = v144
-            if _G.LockTimeConnection then
-                _G.LockTimeConnection:Disconnect()
-            end
-            _G.LockTimeConnection =
-                game.Lighting:GetPropertyChangedSignal("ClockTime"):Connect(
-                    function()
-                        if (game.Lighting.ClockTime ~= v144) then
-                            game.Lighting.ClockTime = v144
-                        end
-                    end
-                )
-        end
-        task.spawn(function()
-            pcall(function()
-                loadstring(
-                    game:HttpGet(
-                        "https://raw.githubusercontent.com/RevampedCity/Shaman-Library/refs/heads/main/Remove%20Lighting"
-                    )
-                )()
-            end)
-        end)
-        v7()
+    local function v7()
+    if game.Lighting then
+    for v518, v519 in pairs(game.Lighting:GetChildren()) do
+    if (v519:IsA("PostEffect") or v519:IsA("BloomEffect") or v519:IsA("SunRaysEffect") or
+    v519:IsA("DepthOfFieldEffect")) then
+    pcall(function()
+    v519:Destroy()
+    end)
+    end
+    end
+    end
+    end
+    local function v8(v144)
+    game.Lighting.ClockTime = v144
+    if _G.LockTimeConnection then
+    _G.LockTimeConnection:Disconnect()
+    end
+    _G.LockTimeConnection =
+    game.Lighting:GetPropertyChangedSignal("ClockTime"):Connect(
+    function()
+    if (game.Lighting.ClockTime ~= v144) then
+    game.Lighting.ClockTime = v144
+    end
+    end
+    )
+    end
+    task.spawn(function()
+    pcall(function()
+    loadstring(
+    game:HttpGet(
+	"https://raw.githubusercontent.com/RevampedCity/Shaman-Library/refs/heads/main/Remove%20Lighting"
+    )
+    )()
+    end)
+    end)
+    v7()
     end
     })
-
-    -- Change To Day Button
     EffectsSection:Button({
     Text = "Change To Day",
     Description = "Click to set the game time to permanent day.",
     Callback = function()
-        game.Lighting.ClockTime = 12 -- Sets the time to noon (day)
+    game.Lighting.ClockTime = 12 -- Sets the time to noon (day)
     end
     })
-
-    -- Change To Night Button
     EffectsSection:Button({
     Text = "Change To Night",
     Description = "Click to set the game time to permanent night.",
     Callback = function()
-        game.Lighting.ClockTime = 0 -- Sets the time to midnight (night)
+    game.Lighting.ClockTime = 0 -- Sets the time to midnight (night)
     end
     })
 
 -- Other Players Tab
-    local otherPlayersTab = Window:Tab({ Text = "Other Players" })
+    local otherPlayersTab = Window:Tab({ Text = "Other" })
     local viewsSection = otherPlayersTab:Section({ Text = "Views" })
     local Players = game:GetService("Players")
     local SelectedPlayerName = nil
-
-    -- Create notification frame function
-   local function CreateNotification(text)
-    -- Container frame inside the window (you can adjust placement)
+   	local function CreateNotification(text)
     local notifFrame = Instance.new("Frame")
     notifFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)  -- dark grey
     notifFrame.Size = UDim2.new(0, 300, 0, 80)
@@ -1857,12 +1668,8 @@
     notifFrame.BorderSizePixel = 0
     notifFrame.BackgroundTransparency = 0.15
     notifFrame.ZIndex = 1000
-
-    -- Rounded corners
     local uicorner = Instance.new("UICorner", notifFrame)
     uicorner.CornerRadius = UDim.new(0, 8)
-
-    -- Text label
     local label = Instance.new("TextLabel", notifFrame)
     label.Size = UDim2.new(1, -20, 1, -20)
     label.Position = UDim2.new(0, 10, 0, 10)
@@ -1875,809 +1682,352 @@
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.TextYAlignment = Enum.TextYAlignment.Top
     label.ZIndex = 1001
-
-    -- Parent to the main Window's main container or ScreenGui
-    -- Assuming Window object has a 'Container' property or fallback to PlayerGui
     local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
     if playerGui then
-        local screenGui = playerGui:FindFirstChild("RevampedCityNotificationGui")
-        if not screenGui then
-            screenGui = Instance.new("ScreenGui")
-            screenGui.Name = "RevampedCityNotificationGui"
-            screenGui.ResetOnSpawn = false
-            screenGui.Parent = playerGui
-        end
-        notifFrame.Parent = screenGui
-    else
-        notifFrame.Parent = game.CoreGui -- fallback, but PlayerGui is better
+	local screenGui = playerGui:FindFirstChild("RevampedCityNotificationGui")
+    if not screenGui then
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "RevampedCityNotificationGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
     end
-
-    -- Fade out and destroy after 4 seconds
+    notifFrame.Parent = screenGui
+    else
+    notifFrame.Parent = game.CoreGui -- fallback, but PlayerGui is better
+    end
     task.spawn(function()
-        task.wait(4)
-        for i = 1, 10 do
-            notifFrame.BackgroundTransparency = notifFrame.BackgroundTransparency + 0.08
-            label.TextTransparency = label.TextTransparency + 0.08
-            task.wait(0.05)
-        end
-        notifFrame:Destroy()
+    task.wait(4)
+    for i = 1, 10 do
+    notifFrame.BackgroundTransparency = notifFrame.BackgroundTransparency + 0.08
+    label.TextTransparency = label.TextTransparency + 0.08
+    task.wait(0.05)
+    end
+    notifFrame:Destroy()
     end)
     end
-
-    -- Player input box
     viewsSection:Input({
     Text = "Target Player",
     Placeholder = "Enter player name or display name",
     Callback = function(input)
-        input = input:lower()
-        local found = nil
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player.Name:lower():find(input) or player.DisplayName:lower():find(input) then
-                found = player.Name
-                break
-            end
-        end
-        SelectedPlayerName = found
+    input = input:lower()
+    local found = nil
+    for _, player in ipairs(Players:GetPlayers()) do
+    if player.Name:lower():find(input) or player.DisplayName:lower():find(input) then
+    found = player.Name
+    break
+    end
+    end
+    SelectedPlayerName = found
     end
     })
-
     local function getTargetPlayer()
     if SelectedPlayerName then
-        return Players:FindFirstChild(SelectedPlayerName)
+    return Players:FindFirstChild(SelectedPlayerName)
     end
     return nil
     end
-
-    -- Helper to format table values into string list
     local function formatItemNames(items)
     if #items == 0 then return "None" end
     return table.concat(items, ", ")
     end
-
-    -- View Safe Items Button
     viewsSection:Button({
     Text = "View Safe Items",
     Callback = function()
-        local target = getTargetPlayer()
-        if target and target:FindFirstChild("InvData") then
-            local invItems = target.InvData:GetChildren()
-            local itemNames = {}
-            for _, item in ipairs(invItems) do
-                table.insert(itemNames, item.Name)
-            end
-            CreateNotification("Safe Items for "..target.Name..":\n"..formatItemNames(itemNames))
-        else
-            CreateNotification("Safe data unavailable for player.")
-        end
+    local target = getTargetPlayer()
+    if target and target:FindFirstChild("InvData") then
+    local invItems = target.InvData:GetChildren()
+    local itemNames = {}
+    for _, item in ipairs(invItems) do
+    table.insert(itemNames, item.Name)
+    end
+    CreateNotification("Safe Items for "..target.Name..":\n"..formatItemNames(itemNames))
+    else
+    CreateNotification("Safe data unavailable for player.")
+    end
     end
     })
-
-    -- View Bank Button
     viewsSection:Button({
     Text = "View Bank",
     Callback = function()
-        local target = getTargetPlayer()
-        if target and target:FindFirstChild("stored") and target.stored:FindFirstChild("Bank") then
-            CreateNotification("Bank Balance for "..target.Name..": $"..target.stored.Bank.Value)
-        else
-            CreateNotification("Bank data unavailable for player.")
-        end
+    local target = getTargetPlayer()
+    if target and target:FindFirstChild("stored") and target.stored:FindFirstChild("Bank") then
+    CreateNotification("Bank Balance for "..target.Name..": $"..target.stored.Bank.Value)
+    else
+    CreateNotification("Bank data unavailable for player.")
+    end
     end
     })
-
-    -- View Wallet Button
     viewsSection:Button({
     Text = "View Wallet",
     Callback = function()
-        local target = getTargetPlayer()
-        if target and target:FindFirstChild("stored") and target.stored:FindFirstChild("Money") then
-            CreateNotification("Wallet for "..target.Name..": $"..target.stored.Money.Value)
-        else
-            CreateNotification("Wallet data unavailable for player.")
-        end
+    local target = getTargetPlayer()
+    if target and target:FindFirstChild("stored") and target.stored:FindFirstChild("Money") then
+    CreateNotification("Wallet for "..target.Name..": $"..target.stored.Money.Value)
+    else
+    CreateNotification("Wallet data unavailable for player.")
+    end
     end
     })
-
-    -- View Inventory Button
     viewsSection:Button({
     Text = "View Inventory",
     Callback = function()
-        local target = getTargetPlayer()
-        if target and target:FindFirstChild("Backpack") then
-            local backpackItems = target.Backpack:GetChildren()
-            local itemNames = {}
-            for _, item in ipairs(backpackItems) do
-                table.insert(itemNames, item.Name)
-            end
-            CreateNotification("Inventory for "..target.Name..":\n"..formatItemNames(itemNames))
-        else
-            CreateNotification("Inventory data unavailable for player.")
-        end
+    local target = getTargetPlayer()
+    if target and target:FindFirstChild("Backpack") then
+    local backpackItems = target.Backpack:GetChildren()
+    local itemNames = {}
+    for _, item in ipairs(backpackItems) do
+    table.insert(itemNames, item.Name)
+	end
+    CreateNotification("Inventory for "..target.Name..":\n"..formatItemNames(itemNames))
+    else
+    CreateNotification("Inventory data unavailable for player.")
+    end
     end
     })
  
-
     local teleportSection = otherPlayersTab:Section({ Text = "Teleport", Side = "Right" })
-
-    -- Bypassed Teleport Method #1
     local function TriggerSeat()
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+    for _, obj in pairs(workspace:GetDescendants()) do
+    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+    obj:Sit(humanoid)
+    return
+    end
+    end
+    end
+    end
+    local function teleportTo(position)
+    TriggerSeat()
+    wait(1)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+    end
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+    humanoid.Sit = false
+    end
+    end
+    local function findPlayer(input)
+    input = input:lower()
+    for _, targetPlayer in pairs(Players:GetPlayers()) do
+    if targetPlayer.Name:lower():sub(1, #input) == input or targetPlayer.DisplayName:lower():sub(1, #input) == input then
+    return targetPlayer
+    end
+    end
+    return nil
+    end
+    local playerName = ""
+    teleportSection:Input({
+    Text = "Enter Player Name",
+    Placeholder = "Player Name",
+    Callback = function(value)
+    playerName = value
+    end
+    })
+    teleportSection:Button({
+    Text = "Teleport to Player",
+    Callback = function()
+    local targetPlayer = findPlayer(playerName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    teleportTo(targetPlayer.Character.HumanoidRootPart.Position)
+    end
+    end
+    })
+
+--
+local TeleportTab = Window:Tab({ Text = "Teleport" })
+local player = game:GetService("Players").LocalPlayer
+
+local function setMovementEnabled(enabled)
+    -- Implement this function depending on your movement disabling method
+    -- For example, you might disable ContextActionService bindings or your own control flags
+end
+
+local function TriggerSeat()
     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
     if humanoid then
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
                 obj:Sit(humanoid)
-                return
+                return true
             end
         end
     end
-    end
+    return false
+end
 
-    local function teleportTo(position)
-    TriggerSeat()
-    wait(1)
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-    end
+local function teleportTo(positionOrCFrame)
     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.Sit = false
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not hrp then return end
+    setMovementEnabled(false)
+    local sat = TriggerSeat()
+    if sat then
+        task.wait(1)
     end
+    if typeof(positionOrCFrame) == "Vector3" then
+        hrp.CFrame = CFrame.new(positionOrCFrame)
+    elseif typeof(positionOrCFrame) == "CFrame" then
+        hrp.CFrame = positionOrCFrame
     end
-
-    -- Find player by input name or display name (prefix match)
-    local function findPlayer(input)
-    input = input:lower()
-    for _, targetPlayer in pairs(Players:GetPlayers()) do
-        if targetPlayer.Name:lower():sub(1, #input) == input or targetPlayer.DisplayName:lower():sub(1, #input) == input then
-            return targetPlayer
-        end
-    end
-    return nil
-    end
-
-    local playerName = ""
-
-    teleportSection:Input({
-    Text = "Enter Player Name",
-    Placeholder = "Player Name",
-    Callback = function(value)
-        playerName = value
-    end
-    })
-
-    teleportSection:Button({
-    Text = "Teleport to Player",
-    Callback = function()
-        local targetPlayer = findPlayer(playerName)
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            teleportTo(targetPlayer.Character.HumanoidRootPart.Position)
-        end
-    end
-    })
-
-
--- Teleports FIXED --
-    local TeleportTab = Window:Tab({ Text = "Teleport" })
-    local TeleportSection = TeleportTab:Section({ Text = "Main" })
-    local player = game:GetService("Players").LocalPlayer
-    local locations = {
-    {name = "Studio", position = Vector3.new(93432.28125, 14484.7421875, 565.5982666015625)},
-    {name = "Police Station", position = Vector3.new(-67.72321319580078, 283.4699401855469, -719.5398559570312)},
-    {name = "Bank", position = Vector3.new(-207, 284, -1214)},
-    {name = "Icebox", position = Vector3.new(-210, 283, -1257)},
-    {name = "Penthouse", position = Vector3.new(-150.90985107421875, 417.2039794921875, -567.7549438476562)},
-    {name = "Safe", position = Vector3.new(68515.65625, 52941.5, -796.0286865234375)},
-    {name = "Laptop", position = Vector3.new(-1017, 253, -251)},
-    {name = "Money Wash", position = Vector3.new(-990.2910766601562, 253.6531524658203, -688.8972778320312)},
-    {name = "Cooking Pots (Penthouse)", position = Vector3.new(-132, 417, -598)},
-    {name = "Cooking Van", position = Vector3.new(-52, 287, -338)}
-    }
-
-    local function TriggerSeat()
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    for _, obj in pairs(workspace:GetDescendants()) do
-    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-    obj:Sit(humanoid)
-    return
-    end
-    end
-    end
-    end
-    local function teleportTo(position)
-    local screen = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer.PlayerGui)
-    screen.Name = "TeleportScreen"
-    screen.ResetOnSpawn = false  -- Prevent the GUI from resetting on death
-    local frame = Instance.new("Frame", screen)
-    frame.Size = UDim2.new(1, 0, 1.5, 0)
-    frame.Position = UDim2.new(0, 0, -0.06, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.Text = "Teleporting."
-    label.TextColor3 = Color3.fromRGB(173, 216, 230)
-    label.TextScaled = true
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBold
-    local dotCounter = 1
-    local function updateDots()
-    while screen.Parent do
-    label.Text = "Teleporting." .. string.rep(".", dotCounter)
-    dotCounter = (dotCounter % 3) + 1
     task.wait(1)
-    end
-    end
-    task.spawn(updateDots)
-    local function updateTextSize()
-    while screen.Parent do
-    label.TextSize = math.random(40, 60)
-    task.wait(0.1)
-    end
-    end
-    task.spawn(updateTextSize)
-    local revText = Instance.new("TextLabel", frame)
-    revText.Size = UDim2.new(0.5, 0, 0.1, 0)
-    revText.Position = UDim2.new(0.25, 0, 0.8, 0)
-    revText.Text = "Revamped.City"
-    revText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    revText.TextScaled = true
-    revText.BackgroundTransparency = 1
-    revText.Font = Enum.Font.GothamBold
-    TriggerSeat()  -- Sit in a chair
-    -- Wait for 1 second after sitting
-    wait(1)
-    -- Now teleport the player
-    player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-    -- Immediately unsit the player to make sure they're no longer seated
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
     humanoid.Sit = false
-    end
-    -- Destroy the screen after the teleportation is complete
-    screen:Destroy()
-    end
-    for _, location in ipairs(locations) do
-    TeleportSection:Button({
-    Text = location.name,
-    Callback = function()
-    teleportTo(location.position)
-    end
-    })
-    end
-    local TeleportSection = TeleportTab:Section({ Text = "Guns" })
-    local player = game:GetService("Players").LocalPlayer
-    local locations = {
-    {name = "Studio Guns", position = Vector3.new(72422.1171875, 128855.6328125, -1086.7322998046875)},
-    {name = "Gun Shop 1", position = Vector3.new(92993.046875, 122097.953125, 17026.3515625)},
-    {name = "Gun Shop 2", position = Vector3.new(66201.1875, 123615.703125, 5749.68115234375)},
-    {name = "Gun Shop 3", position = Vector3.new(60841.60546875, 87609.140625, -352.474609375)}
-    }
-
-    local function TriggerSeat()
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    for _, obj in pairs(workspace:GetDescendants()) do
-    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-    obj:Sit(humanoid)
-    return
-    end
-    end
-    end
-    end
-    local function teleportTo(position)
-    local screen = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer.PlayerGui)
-    screen.Name = "TeleportScreen"
-    screen.ResetOnSpawn = false  -- Prevent the GUI from resetting on death
-    local frame = Instance.new("Frame", screen)
-    frame.Size = UDim2.new(1, 0, 1.5, 0)
-    frame.Position = UDim2.new(0, 0, -0.06, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.Text = "Teleporting."
-    label.TextColor3 = Color3.fromRGB(173, 216, 230)
-    label.TextScaled = true
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBold
-    local dotCounter = 1
-    local function updateDots()
-    while screen.Parent do
-    label.Text = "Teleporting." .. string.rep(".", dotCounter)
-    dotCounter = (dotCounter % 3) + 1
     task.wait(1)
+    setMovementEnabled(true)
+    if (hrp.Position - (typeof(positionOrCFrame) == "Vector3" and positionOrCFrame or positionOrCFrame.Position)).Magnitude > 10 then
+        teleportTo(positionOrCFrame)
     end
-    end
-    task.spawn(updateDots)
-    local function updateTextSize()
-    while screen.Parent do
-    label.TextSize = math.random(40, 60)
-    task.wait(0.1)
-    end
-    end
-    task.spawn(updateTextSize)
-    local revText = Instance.new("TextLabel", frame)
-    revText.Size = UDim2.new(0.5, 0, 0.1, 0)
-    revText.Position = UDim2.new(0.25, 0, 0.8, 0)
-    revText.Text = "Revamped.City"
-    revText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    revText.TextScaled = true
-    revText.BackgroundTransparency = 1
-    revText.Font = Enum.Font.GothamBold
-    TriggerSeat()  -- Sit in a chair
-    -- Wait for 1 second after sitting
-    wait(1.5)
-    -- Now teleport the player
-    player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-    -- Immediately unsit the player to make sure they're no longer seated
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    humanoid.Sit = false
-    end
-    -- Destroy the screen after the teleportation is complete
-    screen:Destroy()
-    end
-    for _, location in ipairs(locations) do
-    TeleportSection:Button({
-    Text = location.name,
-    Callback = function()
-    teleportTo(location.position)
-    end
-    })
-    end
-    local TeleportSection = TeleportTab:Section({ Text = "Shops", Side = "Right" })
-    local player = game:GetService("Players").LocalPlayer
-    local locations = {
-    {name = "Bank Tools", position = Vector3.new(-420.06304931640625, 340.34051513671875, -557.3113403320312)},
-    {name = "Dealership", position = Vector3.new(-408.208984375, 253.25640869140625, -1248.583251953125)},
-    {name = "Safe", position = Vector3.new(68515.65625, 52941.5, -796.0286865234375)},
-    {name = "Backpack", position = Vector3.new(-674, 254, -682)},
-    {name = "Cooking Van", position = Vector3.new(-52, 287, -338)},
-    {name = "Exotic Dealer", position = Vector3.new(-1521, 273, -983)}
-    }
+end
 
-    local function TriggerSeat()
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    for _, obj in pairs(workspace:GetDescendants()) do
-    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-    obj:Sit(humanoid)
-    return
+-- Helper to create teleport buttons using teleportTo
+local function createTeleportButtons(section, locations)
+    for _, loc in ipairs(locations) do
+        section:Button({
+            Text = loc.name,
+            Callback = function()
+                teleportTo(loc.position)
+            end
+        })
     end
-    end
-    end
-    end
-    local function teleportTo(position)
-    local screen = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer.PlayerGui)
-    screen.Name = "TeleportScreen"
-    screen.ResetOnSpawn = false  -- Prevent the GUI from resetting on death
-    local frame = Instance.new("Frame", screen)
-    frame.Size = UDim2.new(1, 0, 1.5, 0)
-    frame.Position = UDim2.new(0, 0, -0.06, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.Text = "Teleporting."
-    label.TextColor3 = Color3.fromRGB(173, 216, 230)
-    label.TextScaled = true
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBold
-    local dotCounter = 1
-    local function updateDots()
-    while screen.Parent do
-    label.Text = "Teleporting." .. string.rep(".", dotCounter)
-    dotCounter = (dotCounter % 3) + 1
-    task.wait(1)
-    end
-    end
-    task.spawn(updateDots)
-    local function updateTextSize()
-    while screen.Parent do
-    label.TextSize = math.random(40, 60)
-    task.wait(0.1)
-    end
-    end
-    task.spawn(updateTextSize)
-    local revText = Instance.new("TextLabel", frame)
-    revText.Size = UDim2.new(0.5, 0, 0.1, 0)
-    revText.Position = UDim2.new(0.25, 0, 0.8, 0)
-    revText.Text = "Revamped.City"
-    revText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    revText.TextScaled = true
-    revText.BackgroundTransparency = 1
-    revText.Font = Enum.Font.GothamBold
-    TriggerSeat()  -- Sit in a chair
-    -- Wait for 1 second after sitting
-    wait(1)
-    -- Now teleport the player
-    player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-    -- Immediately unsit the player to make sure they're no longer seated
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    humanoid.Sit = false
-    end
-    -- Destroy the screen after the teleportation is complete
-    screen:Destroy()
-    end
-    for _, location in ipairs(locations) do
-    TeleportSection:Button({
-    Text = location.name,
-    Callback = function()
-    teleportTo(location.position)
-    end
-    })
-    end
-    
+end
 
-    local TeleportSection = TeleportTab:Section({ Text = "NYPD Section", Side = "Right" })
-    TeleportSection:Button({
-    Text = "Police Room",
-    Callback = function()
-    teleportTo(Vector3.new(-102, 285, -689))
-    end
-    })
-    TeleportSection:Button({
-    Text = "FBI Room",
-    Callback = function()
-    teleportTo(Vector3.new(-117.96803283691406, 285.3559875488281, -739.5340576171875))
-    end
-    })
-    TeleportSection:Button({
-    Text = "ESU Room",
-    Callback = function()
-    teleportTo(Vector3.new(-125.00878143310547, 285.35595703125, -682.3515014648438)) -- Update coordinates if needed
-    end
-    })
-    TeleportSection:Button({
-    Text = "Electric Chair",
-    Callback = function()
-    teleportTo(Vector3.new(-135.516845703125, 285.35595703125, -738.83935546875))
-    end
-    })
-    TeleportSection:Button({
-    Text = "Court Room",
-    Callback = function()
-    teleportTo(Vector3.new(-92.50507354736328, 287.05169677734375, -761.1896362304688))
-    end
-    })
-    -- Function to sit in a chair and teleport to the given position
-    local function TriggerSeat()
-    local humanoid = game:GetService("Players").LocalPlayer.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    for _, obj in pairs(workspace:GetDescendants()) do
-    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-    obj:Sit(humanoid)
-    return
-    end
-    end
-    end
-    end
-    -- Function to teleport the player
-    local function teleportTo(position)
-    local player = game:GetService("Players").LocalPlayer
-    local screen = Instance.new("ScreenGui", player.PlayerGui)
-    screen.Name = "TeleportScreen"
-    screen.ResetOnSpawn = false  -- Prevent GUI reset on death
-    local frame = Instance.new("Frame", screen)
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.Text = "Teleporting."
-    label.TextColor3 = Color3.fromRGB(173, 216, 230)
-    label.TextScaled = true
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBold
-    local dotCounter = 1
-    local function updateDots()
-    while screen.Parent do
-    label.Text = "Teleporting." .. string.rep(".", dotCounter)
-    dotCounter = (dotCounter % 3) + 1
-    task.wait(1)
-    end
-    end
-    task.spawn(updateDots)
-    -- Sit the player in a seat first
-    TriggerSeat()
-    -- Wait for 1 second after sitting
-    wait(1)
-    -- Teleport the player to the target position
-    player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-    -- Immediately unsit the player to make sure they're no longer seated
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    humanoid.Sit = false
-    end
-    -- Destroy the screen after teleportation
-    screen:Destroy()
-    end
--- Open GUI's --
-    local guiTab = Window:Tab({ Text = "GUI's" })
-    local guiSection = guiTab:Section({ Text = "GUI" })
-    local bronxClothingButton = guiSection:Button({
-    Text = "Bronx Clothing",
-    Callback = function()
-    local Plr = game.Players.LocalPlayer  -- Get the local player
-    Plr.PlayerGui["Bronx CLOTHING"].Enabled = true  -- Enable the "Bronx CLOTHING" GUI
-    end
-    })
-    local bronxMarketButton = guiSection:Button({
-    Text = "Bronx Market",
-    Callback = function()
-    local Plr = game.Players.LocalPlayer  -- Get the local player
-    Plr.PlayerGui["Bronx Market 2"].Enabled = true  -- Enable Bronx Market 2
-    end
-    })
-    local bronxPawningButton = guiSection:Button({
-    Text = "Bronx Pawning",
-    Callback = function()
-    local Plr = game.Players.LocalPlayer  -- Get the local player
-    Plr.PlayerGui["Bronx PAWNING"].Enabled = true  -- Enable the "Bronx PAWNING" GUI
-    end
-    })
-    local bronxTattoosButton = guiSection:Button({
-    Text = "Bronx Tattoos",
-    Callback = function()
-    local Plr = game.Players.LocalPlayer  -- Get the local player
-    Plr.PlayerGui["Bronx TATTOOS"].Enabled = true  -- Enable the "Bronx TATTOOS" GUI
-    end
-    })
-    local bronxCraftingButton = guiSection:Button({
-    Text = "Bronx Crafting",
-    Callback = function()
-    local Plr = game.Players.LocalPlayer  -- Get the local player
-    Plr.PlayerGui.CraftGUI.Main.Visible = true  -- Make the "CraftGUI Main" visible
-    end
-    })
-    local bronxGarageButton = guiSection:Button({
-    Text = "Bronx Garage",
-    Callback = function()
-    local Plr = game.Players.LocalPlayer  -- Get the local player
-    Plr.PlayerGui.ColorWheel.Enabled = true  -- Enable the "Bronx Garage" (ColorWheel)
-    local Notification = Instance.new("ScreenGui")
-    Notification.Name = "Notification"
-    Notification.Parent = game.Players.LocalPlayer.PlayerGui
-    local TextLabel = Instance.new("TextLabel")
-    TextLabel.Parent = Notification
-    TextLabel.Text = "Press 'Back' Unless You Have The Game Pass"
-    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TextLabel.BackgroundTransparency = 0.5
-    TextLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    TextLabel.Position = UDim2.new(0.5, -150, 0, 20)  -- Position at the top middle of the screen
-    TextLabel.Size = UDim2.new(0, 300, 0, 50)
-    TextLabel.TextScaled = true
-    TextLabel.AnchorPoint = Vector2.new(0.5, 0)
-    wait(3)
-    Notification:Destroy()
-    end
-    })
-    local clonedATMGui = nil
-    local bronxATMToggle = guiSection:Toggle({
-    Text = "Bronx ATM",
-    Callback = function(isToggled)
-    local Plr = game.Players.LocalPlayer  -- Get the local player
-    local lighting = game:GetService("Lighting")
-    local atmGui = lighting:FindFirstChild("Assets"):FindFirstChild("GUI"):FindFirstChild("ATMGui")  -- Get the ATMGui
-    if isToggled then
-    if atmGui then
-    clonedATMGui = atmGui:Clone()
-    clonedATMGui.Parent = Plr:WaitForChild("PlayerGui")
-    else
-    warn("ATM not found.")
-    end
-    else
-    if clonedATMGui then
-    clonedATMGui:Destroy()
-    clonedATMGui = nil
-    end
-    end
-    end
-    })
+-- Safe Locations --
+local SafeSection = TeleportTab:Section({ Text = "Safe Locations" })
+local safeLocations = {
+    {name = "Open Field", position = Vector3.new(-1279, 253, -532)}
+}
+createTeleportButtons(SafeSection, safeLocations)
 
--- Money --
-    local moneyTab = Window:Tab({ Text = "Money" })
-    local bankSection = moneyTab:Section({ Text = "Bank Options", Side = "Left" })
-    
-    local depositAmount = 0
-    local withdrawAmount = 0
-    local dropAmount = 0
-    bankSection:Input({
-    Placeholder = "Deposit Amount",
-    Flag = "DepositAmount",
-    Callback = function(input)
-    depositAmount = tonumber(input) or 0
-    end
-    })
-    bankSection:Input({
-    Placeholder = "Withdrawal Amount",
-    Flag = "WithdrawAmount",
-    Callback = function(input)
-    withdrawAmount = tonumber(input) or 0
-    end
-    })
-    bankSection:Input({
-    Placeholder = "Money Drop Amount",
-    Flag = "DropAmount",
-    Callback = function(input)
-    dropAmount = tonumber(input) or 0
-    end
-    })
-    local depositLoop
-    bankSection:Toggle({
-    Text = "Deposit",
-    Default = false,
-    Callback = function(state)
-    if state then
-    depositLoop = game:GetService("RunService").Heartbeat:Connect(function()
-    game:GetService("ReplicatedStorage").BankAction:FireServer("depo", depositAmount)
-    v0:Notify({ Title = "Deposit", Content = "Deposited $" .. depositAmount, Duration = 3 })
-    wait(4) -- Wait for 4 seconds before the next action
-    end)
-    else
-    if depositLoop then
-    depositLoop:Disconnect()
-    depositLoop = nil
-    end
-    end
-    end
-    })
-    local withdrawLoop
-    bankSection:Toggle({
-    Text = "Withdrawal",
-    Default = false,
-    Callback = function(state)
-    if state then
-    withdrawLoop = game:GetService("RunService").Heartbeat:Connect(function()
-    game:GetService("ReplicatedStorage").BankAction:FireServer("depo", depositAmount)
-    game:GetService("ReplicatedStorage").BankAction:FireServer("with", withdrawAmount)
-    v0:Notify({ Title = "Withdraw", Content = "Withdrew $" .. withdrawAmount, Duration = 6 - 3 })
-    wait(4) -- Wait for 4 seconds before the next action
-    end)
-    else
-    if withdrawLoop then
-    withdrawLoop:Disconnect()
-    withdrawLoop = nil
-    end
-    end
-    end
-    })
-    local dropLoop
-    bankSection:Toggle({
-    Text = "Money Drop",
-    Default = false,
-    Callback = function(state)
-    if state then
-    dropLoop = game:GetService("RunService").Heartbeat:Connect(function()
-    game:GetService("ReplicatedStorage"):WaitForChild("BankProcessRemote"):InvokeServer("Drop", dropAmount)
-    v0:Notify({ Title = "Money Drop", Content = "Dropped $" .. dropAmount, Duration = 3 - 1 })
-    wait(4) -- Wait for 4 seconds before the next action
-    end)
-    else
-    if dropLoop then
-    dropLoop:Disconnect()
-    dropLoop = nil
-    end
-    end
-    end
-    })
-    local player = game:GetService("Players").LocalPlayer
-    local RunService = game:GetService("RunService")
+-- Gun Shops --
+local GunSection = TeleportTab:Section({ Text = "Gun Shops", Side = "Right" })
+local gunLocations = {
+    {name = "Xotic Guns", position = Vector3.new(60823, 87609, -350)},
+    {name = "Studio Guns", position = Vector3.new(72422, 128856, -1087)},
+    {name = "The Gun Shop 1", position = Vector3.new(-201, 284, -795)},
+    {name = "The Gun Shop 2", position = Vector3.new(-1014, 255, -1125)}
+}
+createTeleportButtons(GunSection, gunLocations)
 
-    -- Your TriggerSeat teleport method
-    local function TriggerSeat()
-	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-	if humanoid then
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-				obj:Sit(humanoid)
-				return
-			end
-		end
-	end
-    end
+-- Shops --
+local ShopSection = TeleportTab:Section({ Text = "Shops" })
+local shopLocations = {
+    {name = "Frozen", position = Vector3.new(-193, 284, -1171)},
+    {name = "DeliStore", position = Vector3.new(-52, 283, -1053)},
+    {name = "Dealership", position = Vector3.new(-387, 253, -1240)},
+    {name = "Dollar Central", position = Vector3.new(-391, 254, -1075)},
+    {name = "McDronalds", position = Vector3.new(-1014, 255, -1125)},
+    {name = "Drip Shop", position = Vector3.new(67464, 10489, 550)},
+    {name = "Barber Shop", position = Vector3.new(-745, 254, -763)},
+    {name = "Tattoo Shop", position = Vector3.new(-632, 254, -598)},
+    {name = "Jamaican Food", position = Vector3.new(-670, 254, -805)},
+    {name = "Deli & Grill", position = Vector3.new(-739, 254, -901)},
+    {name = "Chicken & Wings", position = Vector3.new(-961, 253, -818)},
+    {name = "Backpack Shop", position = Vector3.new(-675, 254, -685)},
+    {name = "Super Deli", position = Vector3.new(-913, 254, -816)},
+    {name = "Gas Station 1", position = Vector3.new(-365, 253, -782)},
+    {name = "Gas Station 2", position = Vector3.new(-462, 254, -587)},
+    {name = "Gas Station 3", position = Vector3.new(-671, 255, -1146)},
+    {name = "Gas Station 4", position = Vector3.new(-688, 255, -524)},
+    {name = "Gas Station 5", position = Vector3.new(-1765, 253, -1249)},
+    {name = "Gas Station 6", position = Vector3.new(-1446, 254, -3464)}
+}
+createTeleportButtons(ShopSection, shopLocations)
 
-    local function teleportTo(position)
-	TriggerSeat()
-	wait(1)
-	if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-		player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-	end
-	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-	if humanoid then
-		humanoid.Sit = false
-	end
-    end
+-- Apartments --
+local AptSection = TeleportTab:Section({ Text = "Apartments", Side = "Right" })
+local aptLocations = {
+    {name = "Penthouse", position = Vector3.new(-115, 417, -545)},
+    {name = "Apartment 1", position = Vector3.new(-77, 284, -740)},
+    {name = "Apartment 2", position = Vector3.new(-1032, 253, -278)},
+    {name = "Apartment 3", position = Vector3.new(-1022, 258, -505)},
+    {name = "Apartment 4", position = Vector3.new(-1587, 254, -260)},
+    {name = "Apartment 5", position = Vector3.new(-1566, 254, -502)},
+    {name = "Garden Villas", position = Vector3.new(-704, 254, -312)},
+    {name = "Tha Bronx Hotel", position = Vector3.new(-136, 283, -526)},
+    {name = "Fashion Homes", position = Vector3.new(-579, 254, -486)},
+    {name = "Hot & Cod", position = Vector3.new(-583, 253, -673)}
+}
+createTeleportButtons(AptSection, aptLocations)
 
-    -- FreeFall functions
-    local function enableFreeFall()
-	getgenv().FreeFallMethod = true
-	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-	if humanoid then
-		humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
-	end
-    end
+-- Jobs --
+local JobsSection = TeleportTab:Section({ Text = "Jobs" })
+local jobLocations = {
+    {name = "Bank", position = Vector3.new(-203, 284, -1215)},
+    {name = "Pawnshop", position = Vector3.new(-1052, 253, -817)},
+    {name = "Money Wash", position = Vector3.new(-987, 254, -676)},
+    {name = "Paint Job", position = Vector3.new(-75, 295, -1153)},
+    {name = "Koolaid Sell Truck", position = Vector3.new(-56, 287, -338)},
+    {name = "IceBox Rob", position = Vector3.new(-214, 283, -1256)},
+    {name = "Door Break", position = Vector3.new(-585, 254, -595)},
+    {name = "Construction", position = Vector3.new(-1732, 371, -1176)},
+    {name = "Card/Swiper", position = Vector3.new(-601, 256, -1220)},
+    {name = "Laptop", position = Vector3.new(-1016, 254, -251)},
+    {name = "Warehouse", position = Vector3.new(-1561, 258, -1174)},
+    {name = "On Tha Radar", position = Vector3.new(93377, 14485, 566)}
+}
+createTeleportButtons(JobsSection, jobLocations)
 
-    local function disableFreeFallAndReturn(originalPosition)
-	getgenv().FreeFallMethod = false
-	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-	if humanoid then
-		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-	end
-	if originalPosition and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-		player.Character.HumanoidRootPart.CFrame = originalPosition
-	end
-    end
+-- Bronx Police --
+local BronxPoliceSection = TeleportTab:Section({ Text = "Bronx Police", Side = "Right" })
+local policeLocations = {
+    {name = "Police Station", position = Vector3.new(-1407, 255, -3125)},
+    {name = "Prison", position = Vector3.new(-1183, 256, -3382)},
+    {name = "Loadout Room", position = Vector3.new(-1436, 255, -3140)},
+    {name = "Court Room", position = Vector3.new(-1383, 256, -3152)},
+    {name = "Break Room", position = Vector3.new(-1387, 255, -3175)},
+    {name = "Empty Room", position = Vector3.new(-1419, 255, -3181)},
+    {name = "Interrogation Room", position = Vector3.new(-1369, 254, -3187)},
+    {name = "FBI Room", position = Vector3.new(-1420, 255, -3207)},
+    {name = "ESU Room", position = Vector3.new(-1446, 255, -3206)}
+}
+createTeleportButtons(BronxPoliceSection, policeLocations)
 
-    local dropAmount = 10000 -- default value or updated by input
-    local moneyDropActive = false
-    local moneyDropCoroutine = nil
+-- Maybe Coming Soon --
+local ComingSoonSection = TeleportTab:Section({ Text = "Maybe Coming Soon" })
+local comingSoonLocations = {
+    {name = "End Of Map", position = Vector3.new(-1302, 253, -3532)},
+    {name = "General Sales", position = Vector3.new(-1463, 255, -567)},
+    {name = "???", position = Vector3.new(-1396, 262, -696)},
+    {name = "Tha Food Shop", position = Vector3.new(-1046, 253, -674)},
+    {name = "Studio", position = Vector3.new(-1013, 254, -675)},
+    {name = "Flat Fix", position = Vector3.new(-924, 253, -1015)},
+    {name = "Deli Grocery", position = Vector3.new(-738, 254, -798)},
+    {name = "Woodys Pizza", position = Vector3.new(-759, 254, -946)},
+    {name = "Its Up INC", position = Vector3.new(-585, 254, -595)},
+    {name = "Its Up INC 2", position = Vector3.new(-757, 254, -818)},
+    {name = "Jerome Express", position = Vector3.new(-462, 254, -587)},
+    {name = "Richard Cleaners", position = Vector3.new(-218, 284, -1134)},
+    {name = "Bounce House", position = Vector3.new(-124, 285, -884)},
+    {name = "Random Garage", position = Vector3.new(-57, 283, -262)},
+    {name = "WoodyShopp", position = Vector3.new(-198, 283, -721)},
+    {name = "Deli Crop", position = Vector3.new(-198, 283, -689)},
+    {name = "Deli Corp 2", position = Vector3.new(-742, 254, -680)},
+    {name = "Car Wash", position = Vector3.new(-396, 254, -966)},
+    {name = "Customize Car", position = Vector3.new(-341, 253, -1249)},
+    {name = "99 Cents And Up", position = Vector3.new(-460, 254, -529)},
+    {name = "Halal Meat", position = Vector3.new(-460, 253, -555)},
+    {name = "Nail Salon", position = Vector3.new(-692, 254, -830)}
+}
+createTeleportButtons(ComingSoonSection, comingSoonLocations)
 
-    local function dropMoney()
-	game:GetService("ReplicatedStorage"):WaitForChild("BankProcessRemote"):InvokeServer("Drop", dropAmount)
-    end
+-- Roof Tops --
+local RoofSection = TeleportTab:Section({ Text = "Roof Tops", Side = "Right" })
+local roofLocations = {
+    {name = "Rooftop 1", position = Vector3.new(-1612, 477, -507)},
+    {name = "Rooftop 2", position = Vector3.new(-1727, 408, -1173)},
+    {name = "Rooftop 3", position = Vector3.new(-1635, 443, -263)},
+    {name = "Rooftop 4", position = Vector3.new(-1528, 476, -162)},
+    {name = "Rooftop 5", position = Vector3.new(-1034, 423, -245)},
+    {name = "Rooftop 6", position = Vector3.new(-1030, 379, -471)},
+    {name = "Rooftop 7", position = Vector3.new(-686, 378, -317)},
+    {name = "Rooftop 8", position = Vector3.new(-119, 442, -516)},
+    {name = "Rooftop 9", position = Vector3.new(-79, 398, -712)},
+    {name = "Rooftop 10", position = Vector3.new(-181, 437, -1153)}
+}
+createTeleportButtons(RoofSection, roofLocations)
 
-    local function teleportToPlayer(target)
-	if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-		enableFreeFall()
-		local targetRootPart = target.Character.HumanoidRootPart
-		-- Use your TriggerSeat teleport to go near the player + 5 studs up
-		teleportTo(targetRootPart.Position + Vector3.new(0, 5, 0))
-		wait(1) -- wait to stabilize position
-		dropMoney()
-		wait(2) -- wait before next teleport
-	end
-    end
-
-    local function startMoneyDropAll(state)
-	if state then
-		moneyDropActive = true
-		local originalPosition = nil
-		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-			originalPosition = player.Character.HumanoidRootPart.CFrame
-		end
-
-		local players = game:GetService("Players"):GetPlayers()
-		moneyDropCoroutine = coroutine.create(function()
-			while moneyDropActive do
-				for _, target in ipairs(players) do
-					if target ~= player then
-						teleportToPlayer(target)
-						if not moneyDropActive then break end
-					end
-				end
-			end
-		end)
-		coroutine.resume(moneyDropCoroutine)
-	else
-		moneyDropActive = false
-		if moneyDropCoroutine then
-			coroutine.close(moneyDropCoroutine)
-			moneyDropCoroutine = nil
-		end
-		disableFreeFallAndReturn(originalPosition)
-	end
-    end
-
-    -- GUI toggle (assuming bankSection and toggles exist)
-    bankSection:Toggle({
-	Text = "Money Drop ALL",
-	Default = false,
-	Callback = function(state)
-		startMoneyDropAll(state)
-	end
-    })
-
-    -- Money drop amount input (assuming this exists somewhere in your GUI)
-    bankSection:Input({
-	Placeholder = "Money Drop Amount",
-	Flag = "DropAmount",
-	Callback = function(input)
-		dropAmount = tonumber(input) or 10000
-	end
-    })
+--
 -- Shop --
     local shopTab = Window:Tab({ Text = "Shop" })
     local exoticDealerSection = shopTab:Section({ Text = "Exotic Dealer" })
