@@ -740,187 +740,149 @@
 -- Recovery
     local recoveryTab = Window:Tab({ Text = "Recovery" })
     local DupeSection = recoveryTab:Section({ Text = "Dupe" })
-    local player = game:GetService("Players").LocalPlayer
-    local cooldownUI, cooldownLabel
-    local cooldownSeconds = 22
-    local function createCooldownUI()
-	if cooldownUI then return end
-	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "CooldownGUI"
-	screenGui.ResetOnSpawn = false
-	screenGui.IgnoreGuiInset = true
-	screenGui.Parent = player:WaitForChild("PlayerGui")
-	local frame = Instance.new("Frame", screenGui)
-	frame.Size = UDim2.new(0, 120, 0, 30)
-	frame.Position = UDim2.new(0.5, -60, 0, 10)
-	frame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-	frame.BackgroundTransparency = 0.2
-	frame.Name = "CooldownFrame"
-	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
-	local label = Instance.new("TextLabel", frame)
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	label.Font = Enum.Font.GothamBold
-	label.TextScaled = true
-	label.Text = "Cooldown"
-	label.Name = "CooldownLabel"
-	cooldownUI = screenGui
-	cooldownLabel = label
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+
+local keepGunsEnabled = false
+
+local excludedItems = {
+    "Phone", "Fist", "Car Keys", "Gun Permit",
+    ".UziMag", ".Bullets", "5.56", "7.62", ".9mm", 
+    ".Extended", ".FNMag", ".MacMag", ".TecMag", ".Drum",
+    "Lemonade", "FakeCard", "G26", "Shiesty", "RawSteak",
+    "Ice-Fruit Bag", "Ice-Fruit Cupz", "FijiWater", "FreshWater",
+    "Red Elite Bag", "Black Elite Bag", "Grab", "Blue Elite Bag",
+    "Drac Bag", "Yellow RCR Bag", "Black RCR Bag",
+    "Red RCR Bag", "Tan RCR Bag", "Black Designer Bag",
+    "BluGloves", "WhiteGloves", "BlackGloves",
+    "PinkCamoGloves", "RedCamoGloves", "BluCamoGloves",
+    "Water", "RawChicken"
+}
+
+local function normalize(str)
+    return str:lower():gsub("%W", "")
+end
+
+local function isExcluded(toolName)
+    local normTool = normalize(toolName)
+    for _, excluded in ipairs(excludedItems) do
+        if normalize(excluded) == normTool then
+            return true
+        end
     end
-    local function showCooldownUI()
-	createCooldownUI()
-	cooldownUI.Enabled = true
+    return false
+end
+
+local ListWeaponRemote = ReplicatedStorage:WaitForChild("ListWeaponRemote")
+
+local function sellItem(itemName)
+    local args = {
+        [1] = itemName,
+        [2] = 999999
+    }
+    ListWeaponRemote:FireServer(unpack(args))
+end
+
+local function startSellingGuns()
+    task.spawn(function()
+        repeat
+            local soldSomething = false
+            for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+                if item:IsA("Tool") and not isExcluded(item.Name) then
+                    sellItem(item.Name)
+                    soldSomething = true
+                    task.wait(3.2)
+                end
+            end
+            task.wait(0.1)
+        until not soldSomething
+    end)
+end
+
+local function showNotification(message)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "Revamped.City",
+            Text = message,
+            Duration = 5
+        })
+    end)
+end
+
+local function onDeath()
+    wait(0)
+    if keepGunsEnabled then
+        startSellingGuns()
     end
-    local function hideCooldownUI()
-	if cooldownUI then
-	cooldownUI.Enabled = false
-	end
+end
+
+local function onRespawn()
+    if keepGunsEnabled then
+        keepGunsEnabled = false
+        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+        if playerGui then
+            local marketGui = playerGui:FindFirstChild("Bronx Market 2")
+            if marketGui then
+                marketGui.Enabled = true
+                showNotification("Please Select Your Guns")
+            end
+        end
     end
-    local function TriggerSeat()
-	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-	if humanoid then
-	for _, obj in pairs(workspace:GetDescendants()) do
-	if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-	obj:Sit(humanoid)
-	return
-	end
-	end
-	end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    local humanoid = character:WaitForChild("Humanoid", 5)
+    if humanoid then
+        humanoid.Died:Connect(onDeath)
     end
-    local function teleportTo(position)
-	TriggerSeat()
-	task.wait(1)
-	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if hrp then
-	hrp.CFrame = CFrame.new(position)
-	end
-	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-	if humanoid then
-	humanoid.Sit = false
-	end
+    onRespawn()
+end)
+
+if LocalPlayer.Character then
+    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.Died:Connect(onDeath)
     end
-    local isOnCooldown = false
-    local autoDupeEnabled = false
-    local storedToolName = nil
-    local function performDupe(tool)
-	if not tool then
-	warn("[Revamped City] No tool found to dupe.")
-	return false
-	end
-	local toolName = tool.Name
-	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if not hrp then return false end
-	local backpack = player:WaitForChild("Backpack")
-	local safes = workspace["1# Map"]["2 Crosswalks"].Safes:GetChildren()
-	local closestSafe, closestClicker, shortestDistance = nil, nil, math.huge
-	for _, safe in ipairs(safes) do
-	local clicker = safe:FindFirstChild("ChestClicker")
-	if clicker and clicker:IsA("BasePart") then
-	local distance = (hrp.Position - clicker.Position).Magnitude
-	if distance < shortestDistance then
-	shortestDistance = distance
-	closestSafe = safe
-	closestClicker = clicker
-	end
-	end
-	end
-	if not closestSafe or not closestClicker then
-	warn("[Revamped City] No nearby safe found.")
-	return false
-	end
-	tool.Parent = backpack
-	teleportTo(closestClicker.Position + Vector3.new(0, 5, 0))
-	task.wait(0.5)
-	local ReplicatedStorage = game:GetService("ReplicatedStorage")
-	task.spawn(function() ReplicatedStorage.BackpackRemote:InvokeServer("Store", toolName) end)
-	task.spawn(function() ReplicatedStorage.Inventory:FireServer("Change", toolName, "Backpack", closestSafe) end)
-	task.wait(1.7)
-	ReplicatedStorage.BackpackRemote:InvokeServer("Grab", toolName)
-	game.StarterGui:SetCore("SendNotification", {
-	Title = "[Revamped City]",
-	Text = "Duped item stored!",
-	Duration = 2
-	})
-	return true
+end
+
+local function setSpawn()
+    local character = LocalPlayer.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoidRootPart or not humanoid then return end
+
+    local lastPosition = humanoidRootPart.CFrame
+    humanoid.Health = 0
+
+    LocalPlayer.CharacterAdded:Wait()
+    local newCharacter = LocalPlayer.Character
+    local newRoot = newCharacter:WaitForChild("HumanoidRootPart")
+
+    if lastPosition then
+        newRoot.CFrame = lastPosition
     end
-    local function startCooldown(seconds)
-	if isOnCooldown then return end
-	isOnCooldown = true
-	showCooldownUI()
-	for i = seconds, 1, -1 do
-	if cooldownLabel then cooldownLabel.Text = "Cooldown: " .. i end
-	task.wait(1)
-	end
-	isOnCooldown = false
-	if not autoDupeEnabled then
-	hideCooldownUI()
-	end
+end
+
+-- Your button
+DupeSection:Button({
+    Text = "Dupe Inventory",
+    Callback = function()
+        if not keepGunsEnabled then
+            keepGunsEnabled = true
+            showNotification("Keep guns enabled until next respawn!")
+            setSpawn()
+        else
+            showNotification("Already enabled! It will reset on next respawn.")
+        end
     end
-    DupeSection:Button({
-	Text = "Dupe Gun",
-	Callback = function()
-	if isOnCooldown then return end
-	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-	if not tool then return end
-	storedToolName = tool.Name
-	task.spawn(function()
-	local success = performDupe(tool)
-	if success then startCooldown(cooldownSeconds) end
-	end)
-	end
-    })
-    DupeSection:Toggle({
-	Text = "AutoDupe",
-	Callback = function(state)
-	autoDupeEnabled = state
-	if autoDupeEnabled then
-	showCooldownUI()
-	task.spawn(function()
-	while autoDupeEnabled do
-	if isOnCooldown then
-	task.wait(1)
-	continue
-	end
-	if not storedToolName then
-	local heldTool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-	if heldTool then
-	storedToolName = heldTool.Name
-	game.StarterGui:SetCore("SendNotification", {
-	Title = "[Revamped City]",
-	Text = "AutoDupe tool: " .. storedToolName,
-	Duration = 3
-	})
-	else
-	task.wait(1)
-	continue
-	end
-	end
-	local tool = player.Character and player.Character:FindFirstChild(storedToolName)
-	or player.Backpack:FindFirstChild(storedToolName)
-	if tool then
-	if tool:IsDescendantOf(player.Backpack) then
-	tool.Parent = player.Character
-	task.wait(0.5)
-	end
-	local success = performDupe(tool)
-	if success then startCooldown(cooldownSeconds) end
-	else
-	warn("[Revamped City] Tool with name '" .. storedToolName .. "' not found.")
-	end
-	while isOnCooldown and autoDupeEnabled do
-	task.wait(1)
-	end
-	end
-	end)
-	else
-	storedToolName = nil
-	if not isOnCooldown then
-	hideCooldownUI()
-	end
-	end
-	end
-    })
+})
+
+
     local MoneySection = recoveryTab:Section({ Text = "Max Money", Side = "Right" })
     MoneySection:Button({
     Text = "Cook (Step 1)",
