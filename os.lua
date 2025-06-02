@@ -2010,6 +2010,7 @@
     local SafeSection = TeleportTab:Section({ Text = "Safe Locations" })
     local safeLocations = {
     {name = "Open Field", position = Vector3.new(-1248, 256, -5431)},
+    {name = "Bank Tools", position = Vector3.new(-384, 340, -556)},
     {name = "Safe", position = Vector3.new(68517, 52942, -794)}
     }
     createTeleportButtons(SafeSection, safeLocations)
@@ -2020,7 +2021,7 @@
     {name = "Xotic Guns", position = Vector3.new(60823, 87609, -350)},
     {name = "Studio Guns", position = Vector3.new(72422, 128856, -1087)},
     {name = "The Gun Shop 1", position = Vector3.new(-201, 284, -795)},
-    {name = "The Gun Shop 2", position = Vector3.new(-1014, 255, -1125)}
+    {name = "The Gun Shop 2", position = Vector3.new(-1004, 254, -814)}
     }
     createTeleportButtons(GunSection, gunLocations)
 
