@@ -1221,23 +1221,74 @@
  local safeZonePosition = Vector3.new(-1268, 253, -5439) -- Custom safe zone
 
 
- -- Grab MimicATM button
- ATMSection:Button({
+ local teleportedMimics = {}
+local ignoredMimics = {}
+local ignoreHistory = false
+local toolActive = false
+local selectorTool = nil
+local safeZonePosition = Vector3.new(-1268, 253, -5439)
+
+-- Toggle for Ignore ATM Tool
+ATMSection:Toggle({
+    Text = "Ignore ATM Tool",
+    Default = false,
+    Callback = function(state)
+        toolActive = state
+        if state then
+            -- Give selection tool
+            if not selectorTool then
+                selectorTool = Instance.new("Tool")
+                selectorTool.RequiresHandle = false
+                selectorTool.Name = "ATMIgnoreSelector"
+                selectorTool.CanBeDropped = false
+
+                selectorTool.Activated:Connect(function()
+                    local mouse = game.Players.LocalPlayer:GetMouse()
+                    local target = mouse.Target
+                    if target and (target.Name == "MimicATM" or target.Name:match("^MimicATM%d+$")) then
+                        if ignoredMimics[target] then
+                            ignoredMimics[target] = nil
+                            if target:FindFirstChild("IgnoreHighlight") then
+                                target.IgnoreHighlight:Destroy()
+                            end
+                        else
+                            ignoredMimics[target] = true
+                            local highlight = Instance.new("SelectionBox", target)
+                            highlight.Adornee = target
+                            highlight.Name = "IgnoreHighlight"
+                            highlight.LineThickness = 0.08
+                            highlight.SurfaceTransparency = 0.5
+                            highlight.Color3 = Color3.fromRGB(255, 0, 0)
+                        end
+                    end
+                end)
+            end
+            selectorTool.Parent = game.Players.LocalPlayer.Backpack
+            sexyNotification("🛠️ Click a MimicATM to ignore or un-ignore.", 4)
+        else
+            if selectorTool then
+                selectorTool.Parent = nil
+            end
+        end
+    end
+})
+
+-- Grab MimicATM button
+ATMSection:Button({
     Text = "Grab MimicATM",
     Callback = function()
-        -- Gather all MimicATMs in workspace
         local mimicATMList = {}
         for _, obj in pairs(workspace:GetDescendants()) do
-            if obj.Name == "MimicATM" or obj.Name:match("^MimicATM%d+$") then
+            if (obj.Name == "MimicATM" or obj.Name:match("^MimicATM%d+$")) and not ignoredMimics[obj] then
                 table.insert(mimicATMList, obj)
             end
         end
+
         if #mimicATMList == 0 then
-            sexyNotification("❌ No MimicATM Found", 3)
+            sexyNotification("❌ No valid MimicATM found", 3)
             return
         end
 
-        -- Pick next unvisited (or random if ignoring)
         local nextATM = nil
         if ignoreHistory then
             nextATM = mimicATMList[math.random(#mimicATMList)]
@@ -1254,7 +1305,6 @@
             end
         end
 
-        -- Teleport to ATM
         if nextATM and nextATM:IsA("BasePart") then
             teleportTo(nextATM.Position)
             teleportedMimics[nextATM] = true
@@ -1265,7 +1315,6 @@
                 return
             end
 
-            -- Fire prompt
             if prompt.HoldDuration and prompt.HoldDuration > 0 then
                 prompt:InputHoldBegin()
                 task.wait(prompt.HoldDuration)
@@ -1276,7 +1325,6 @@
                 fireproximityprompt(prompt, false)
             end
 
-            -- If player is holding or has ATM tool, teleport to safe zone
             task.wait(0.2)
             if hasTool("ATM") or isHoldingTool("ATM") then
                 teleportTo(safeZonePosition)
@@ -1286,8 +1334,8 @@
             sexyNotification("❌ Failed to teleport to MimicATM", 3)
         end
     end
-    })
- 
+})
+
     local MarketSection = recoveryTab:Section({
 	Text = "Market",
 	Side = "Left"
