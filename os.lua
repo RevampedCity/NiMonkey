@@ -1222,14 +1222,14 @@
 
 
  local teleportedMimics = {}
-local ignoredMimics = {}
-local ignoreHistory = false
-local toolActive = false
-local selectorTool = nil
-local safeZonePosition = Vector3.new(-1268, 253, -5439)
+    local ignoredMimics = {}
+    local ignoreHistory = false
+    local toolActive = false
+    local selectorTool = nil
+    local safeZonePosition = Vector3.new(-1268, 253, -5439)
 
--- Toggle for Ignore ATM Tool
-ATMSection:Toggle({
+    -- Toggle for Ignore ATM Tool
+    ATMSection:Toggle({
     Text = "Ignore ATM Tool",
     Default = false,
     Callback = function(state)
@@ -1271,10 +1271,10 @@ ATMSection:Toggle({
             end
         end
     end
-})
+    })
 
--- Grab MimicATM button
-ATMSection:Button({
+    -- Grab MimicATM button
+    ATMSection:Button({
     Text = "Grab MimicATM",
     Callback = function()
         local mimicATMList = {}
@@ -1334,7 +1334,7 @@ ATMSection:Button({
             sexyNotification("❌ Failed to teleport to MimicATM", 3)
         end
     end
-})
+    })
 
     local MarketSection = recoveryTab:Section({
 	Text = "Market",
@@ -1484,27 +1484,326 @@ ATMSection:Button({
     end
     end
 	})
-	-- Money Drop toggle with loop
-	local dropLoop
-	bankSection:Toggle({
+
+local moneydropSection = recoveryTab:Section({ Text = "Bank Options" })
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local amount = 0
+local totalDropped = 0
+
+-- Input box to enter drop amount
+moneydropSection:Input({
+    Placeholder = "Enter Amount",
+    Flag = "TransactionAmount",
+    Callback = function(input)
+        amount = tonumber(input) or 0
+        if amount > 10000 then
+            amount = 10000 -- enforce max 10k
+        end
+    end
+})
+
+-- Create UI for total dropped tracker at top center
+local playerGui = player:WaitForChild("PlayerGui")
+
+local dropGui = Instance.new("ScreenGui")
+dropGui.Name = "DropTracker"
+dropGui.ResetOnSpawn = false
+dropGui.Enabled = false
+dropGui.Parent = playerGui
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(0, 220, 0, 40)
+bg.Position = UDim2.new(0.5, -110, 0, 20)
+bg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+bg.BackgroundTransparency = 0.1
+bg.BorderSizePixel = 0
+bg.Parent = dropGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = bg
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, 0, 1, 0)
+label.BackgroundTransparency = 1
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.TextScaled = true
+label.Font = Enum.Font.GothamBold
+label.Text = "Dropped: $0"
+label.Parent = bg
+
+local dropToggleActive = false
+local dropConnection = nil
+local dropAccumulator = 0
+local dropInterval = 1.5
+
+-- Function to get current money from player's gui TextLabel
+local function getCurrentMoney()
+    local moneyGui = playerGui:FindFirstChild("MoneyGui")
+    if moneyGui then
+        local frame = moneyGui:FindFirstChild("Frame")
+        if frame then
+            local innerFrame = frame:FindFirstChild("Frame")
+            if innerFrame then
+                local textLabel = innerFrame:FindFirstChild("TextLabel")
+                if textLabel and textLabel.Text then
+                    -- Remove commas or dollar signs if present and convert to number
+                    local moneyText = textLabel.Text:gsub("[%$,]", "")
+                    return tonumber(moneyText) or 0
+                end
+            end
+        end
+    end
+    return 0
+end
+
+moneydropSection:Toggle({
     Text = "Money Drop (10K Max)",
     Default = false,
     Callback = function(state)
-    if state then
-    dropLoop = game:GetService("RunService").Heartbeat:Connect(function()
-    game:GetService("ReplicatedStorage"):WaitForChild("BankProcessRemote"):InvokeServer("Drop", amount)
-    v0:Notify({ Title = "Money Drop", Content = "Dropped $" .. amount, Duration = 2 })
-    wait(4)
-    end)
-    else
-    if dropLoop then
-    dropLoop:Disconnect()
-    dropLoop = nil
-    end
-    end
-    end
-	})
+        dropToggleActive = state
 
+        if state then
+            totalDropped = 0
+            label.Text = "Dropped: $0"
+            dropGui.Enabled = true
+            dropAccumulator = 0
+
+            local lastMoney = getCurrentMoney()
+
+            dropConnection = RunService.Heartbeat:Connect(function(deltaTime)
+                if not dropToggleActive then return end
+
+                dropAccumulator = dropAccumulator + deltaTime
+                if dropAccumulator >= dropInterval then
+                    dropAccumulator = dropAccumulator - dropInterval
+
+                    if amount > 0 then
+                        local beforeMoney = getCurrentMoney()
+                        ReplicatedStorage:WaitForChild("BankProcessRemote"):InvokeServer("Drop", amount)
+
+                        -- Give some time for money to update before checking again
+                        wait(0.2)
+                        local afterMoney = getCurrentMoney()
+
+                        if afterMoney < beforeMoney then
+                            -- Money was subtracted successfully
+                            totalDropped = totalDropped + amount
+                            label.Text = "Dropped: $" .. totalDropped
+                            v0:Notify({
+                                Title = "Money Drop",
+                                Content = "Dropped $" .. amount,
+                                Duration = 2
+                            })
+                        else
+                            -- Money did not decrease, probably not enough
+                            label.Text = "Not Enough"
+                            v0:Notify({
+                                Title = "Money Drop",
+                                Content = "Not Enough Money to Drop",
+                                Duration = 2
+                            })
+                        end
+                    end
+                end
+            end)
+
+        else
+            if dropConnection then
+                dropConnection:Disconnect()
+                dropConnection = nil
+            end
+            dropGui.Enabled = false
+            label.Text = "Dropped: $0"
+            totalDropped = 0
+        end
+    end
+})
+
+
+	
+    local viewsSection = recoveryTab:Section({ Text = "Players Info", Side = "Right" })
+    local Players = game:GetService("Players")
+    local SelectedPlayerName = nil
+   	local function CreateNotification(text)
+    local notifFrame = Instance.new("Frame")
+    notifFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)  -- dark grey
+    notifFrame.Size = UDim2.new(0, 300, 0, 80)
+    notifFrame.Position = UDim2.new(0.5, -150, 0, 50)
+    notifFrame.AnchorPoint = Vector2.new(0.5, 0)
+    notifFrame.BorderSizePixel = 0
+    notifFrame.BackgroundTransparency = 0.15
+    notifFrame.ZIndex = 1000
+    local uicorner = Instance.new("UICorner", notifFrame)
+    uicorner.CornerRadius = UDim.new(0, 8)
+    local label = Instance.new("TextLabel", notifFrame)
+    label.Size = UDim2.new(1, -20, 1, -20)
+    label.Position = UDim2.new(0, 10, 0, 10)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)  -- white text
+    label.TextWrapped = true
+    label.Font = Enum.Font.SourceSansSemibold
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextYAlignment = Enum.TextYAlignment.Top
+    label.ZIndex = 1001
+    local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if playerGui then
+	local screenGui = playerGui:FindFirstChild("RevampedCityNotificationGui")
+    if not screenGui then
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "RevampedCityNotificationGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+    end
+    notifFrame.Parent = screenGui
+    else
+    notifFrame.Parent = game.CoreGui -- fallback, but PlayerGui is better
+    end
+    task.spawn(function()
+    task.wait(4)
+    for i = 1, 10 do
+    notifFrame.BackgroundTransparency = notifFrame.BackgroundTransparency + 0.08
+    label.TextTransparency = label.TextTransparency + 0.08
+    task.wait(0.05)
+    end
+    notifFrame:Destroy()
+    end)
+    end
+    viewsSection:Input({
+    Text = "Target Player",
+    Placeholder = "Enter player name or display name",
+    Callback = function(input)
+    input = input:lower()
+    local found = nil
+    for _, player in ipairs(Players:GetPlayers()) do
+    if player.Name:lower():find(input) or player.DisplayName:lower():find(input) then
+    found = player.Name
+    break
+    end
+    end
+    SelectedPlayerName = found
+    end
+    })
+    local function getTargetPlayer()
+    if SelectedPlayerName then
+    return Players:FindFirstChild(SelectedPlayerName)
+    end
+    return nil
+    end
+    local function formatItemNames(items)
+    if #items == 0 then return "None" end
+    return table.concat(items, ", ")
+    end
+    viewsSection:Button({
+    Text = "View Safe Items",
+    Callback = function()
+    local target = getTargetPlayer()
+    if target and target:FindFirstChild("InvData") then
+    local invItems = target.InvData:GetChildren()
+    local itemNames = {}
+    for _, item in ipairs(invItems) do
+    table.insert(itemNames, item.Name)
+    end
+    CreateNotification("Safe Items for "..target.Name..":\n"..formatItemNames(itemNames))
+    else
+    CreateNotification("Safe data unavailable for player.")
+    end
+    end
+    })
+    viewsSection:Button({
+    Text = "View Bank",
+    Callback = function()
+    local target = getTargetPlayer()
+    if target and target:FindFirstChild("stored") and target.stored:FindFirstChild("Bank") then
+    CreateNotification("Bank Balance for "..target.Name..": $"..target.stored.Bank.Value)
+    else
+    CreateNotification("Bank data unavailable for player.")
+    end
+    end
+    })
+    viewsSection:Button({
+    Text = "View Wallet",
+    Callback = function()
+    local target = getTargetPlayer()
+    if target and target:FindFirstChild("stored") and target.stored:FindFirstChild("Money") then
+    CreateNotification("Wallet for "..target.Name..": $"..target.stored.Money.Value)
+    else
+    CreateNotification("Wallet data unavailable for player.")
+    end
+    end
+    })
+    viewsSection:Button({
+    Text = "View Inventory",
+    Callback = function()
+    local target = getTargetPlayer()
+    if target and target:FindFirstChild("Backpack") then
+    local backpackItems = target.Backpack:GetChildren()
+    local itemNames = {}
+    for _, item in ipairs(backpackItems) do
+    table.insert(itemNames, item.Name)
+	end
+    CreateNotification("Inventory for "..target.Name..":\n"..formatItemNames(itemNames))
+    else
+    CreateNotification("Inventory data unavailable for player.")
+    end
+    end
+    })
+    local playersSection = recoveryTab:Section({ Text = "Teleport To Player"})
+    local function TriggerSeat()
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+    for _, obj in pairs(workspace:GetDescendants()) do
+    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+    obj:Sit(humanoid)
+    return
+    end
+    end
+    end
+    end
+    local function teleportTo(position)
+    TriggerSeat()
+    wait(1)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+    end
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+    humanoid.Sit = false
+    end
+    end
+    local function findPlayer(input)
+    input = input:lower()
+    for _, targetPlayer in pairs(Players:GetPlayers()) do
+    if targetPlayer.Name:lower():sub(1, #input) == input or targetPlayer.DisplayName:lower():sub(1, #input) == input then
+    return targetPlayer
+    end
+    end
+    return nil
+    end
+    local playerName = ""
+    playersSection:Input({
+    Text = "Enter Player Name",
+    Placeholder = "Player Name",
+    Callback = function(value)
+    playerName = value
+    end
+    })
+    playersSection:Button({
+    Text = "Teleport to Player",
+    Callback = function()
+    local targetPlayer = findPlayer(playerName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    teleportTo(targetPlayer.Character.HumanoidRootPart.Position)
+    end
+    end
+    })
 -- Visuals  
  	local Players = game:GetService("Players")
  	local RunService = game:GetService("RunService")
@@ -1821,186 +2120,6 @@ ATMSection:Button({
     end
     })
 
--- Other Players Tab
-    local otherPlayersTab = Window:Tab({ Text = "Other" })
-    local viewsSection = otherPlayersTab:Section({ Text = "Views" })
-    local Players = game:GetService("Players")
-    local SelectedPlayerName = nil
-   	local function CreateNotification(text)
-    local notifFrame = Instance.new("Frame")
-    notifFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)  -- dark grey
-    notifFrame.Size = UDim2.new(0, 300, 0, 80)
-    notifFrame.Position = UDim2.new(0.5, -150, 0, 50)
-    notifFrame.AnchorPoint = Vector2.new(0.5, 0)
-    notifFrame.BorderSizePixel = 0
-    notifFrame.BackgroundTransparency = 0.15
-    notifFrame.ZIndex = 1000
-    local uicorner = Instance.new("UICorner", notifFrame)
-    uicorner.CornerRadius = UDim.new(0, 8)
-    local label = Instance.new("TextLabel", notifFrame)
-    label.Size = UDim2.new(1, -20, 1, -20)
-    label.Position = UDim2.new(0, 10, 0, 10)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)  -- white text
-    label.TextWrapped = true
-    label.Font = Enum.Font.SourceSansSemibold
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.TextYAlignment = Enum.TextYAlignment.Top
-    label.ZIndex = 1001
-    local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if playerGui then
-	local screenGui = playerGui:FindFirstChild("RevampedCityNotificationGui")
-    if not screenGui then
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "RevampedCityNotificationGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = playerGui
-    end
-    notifFrame.Parent = screenGui
-    else
-    notifFrame.Parent = game.CoreGui -- fallback, but PlayerGui is better
-    end
-    task.spawn(function()
-    task.wait(4)
-    for i = 1, 10 do
-    notifFrame.BackgroundTransparency = notifFrame.BackgroundTransparency + 0.08
-    label.TextTransparency = label.TextTransparency + 0.08
-    task.wait(0.05)
-    end
-    notifFrame:Destroy()
-    end)
-    end
-    viewsSection:Input({
-    Text = "Target Player",
-    Placeholder = "Enter player name or display name",
-    Callback = function(input)
-    input = input:lower()
-    local found = nil
-    for _, player in ipairs(Players:GetPlayers()) do
-    if player.Name:lower():find(input) or player.DisplayName:lower():find(input) then
-    found = player.Name
-    break
-    end
-    end
-    SelectedPlayerName = found
-    end
-    })
-    local function getTargetPlayer()
-    if SelectedPlayerName then
-    return Players:FindFirstChild(SelectedPlayerName)
-    end
-    return nil
-    end
-    local function formatItemNames(items)
-    if #items == 0 then return "None" end
-    return table.concat(items, ", ")
-    end
-    viewsSection:Button({
-    Text = "View Safe Items",
-    Callback = function()
-    local target = getTargetPlayer()
-    if target and target:FindFirstChild("InvData") then
-    local invItems = target.InvData:GetChildren()
-    local itemNames = {}
-    for _, item in ipairs(invItems) do
-    table.insert(itemNames, item.Name)
-    end
-    CreateNotification("Safe Items for "..target.Name..":\n"..formatItemNames(itemNames))
-    else
-    CreateNotification("Safe data unavailable for player.")
-    end
-    end
-    })
-    viewsSection:Button({
-    Text = "View Bank",
-    Callback = function()
-    local target = getTargetPlayer()
-    if target and target:FindFirstChild("stored") and target.stored:FindFirstChild("Bank") then
-    CreateNotification("Bank Balance for "..target.Name..": $"..target.stored.Bank.Value)
-    else
-    CreateNotification("Bank data unavailable for player.")
-    end
-    end
-    })
-    viewsSection:Button({
-    Text = "View Wallet",
-    Callback = function()
-    local target = getTargetPlayer()
-    if target and target:FindFirstChild("stored") and target.stored:FindFirstChild("Money") then
-    CreateNotification("Wallet for "..target.Name..": $"..target.stored.Money.Value)
-    else
-    CreateNotification("Wallet data unavailable for player.")
-    end
-    end
-    })
-    viewsSection:Button({
-    Text = "View Inventory",
-    Callback = function()
-    local target = getTargetPlayer()
-    if target and target:FindFirstChild("Backpack") then
-    local backpackItems = target.Backpack:GetChildren()
-    local itemNames = {}
-    for _, item in ipairs(backpackItems) do
-    table.insert(itemNames, item.Name)
-	end
-    CreateNotification("Inventory for "..target.Name..":\n"..formatItemNames(itemNames))
-    else
-    CreateNotification("Inventory data unavailable for player.")
-    end
-    end
-    })
- 
-    local teleportSection = otherPlayersTab:Section({ Text = "Teleport", Side = "Right" })
-    local function TriggerSeat()
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    for _, obj in pairs(workspace:GetDescendants()) do
-    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-    obj:Sit(humanoid)
-    return
-    end
-    end
-    end
-    end
-    local function teleportTo(position)
-    TriggerSeat()
-    wait(1)
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-    player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-    end
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-    humanoid.Sit = false
-    end
-    end
-    local function findPlayer(input)
-    input = input:lower()
-    for _, targetPlayer in pairs(Players:GetPlayers()) do
-    if targetPlayer.Name:lower():sub(1, #input) == input or targetPlayer.DisplayName:lower():sub(1, #input) == input then
-    return targetPlayer
-    end
-    end
-    return nil
-    end
-    local playerName = ""
-    teleportSection:Input({
-    Text = "Enter Player Name",
-    Placeholder = "Player Name",
-    Callback = function(value)
-    playerName = value
-    end
-    })
-    teleportSection:Button({
-    Text = "Teleport to Player",
-    Callback = function()
-    local targetPlayer = findPlayer(playerName)
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-    teleportTo(targetPlayer.Character.HumanoidRootPart.Position)
-    end
-    end
-    })
 
 -- Teleport Tab
  local TeleportTab = Window:Tab({ Text = "Teleport" })
@@ -2190,6 +2309,56 @@ ATMSection:Button({
     {name = "Rooftop 10", position = Vector3.new(-181, 437, -1153)}
     }
     createTeleportButtons(RoofSection, roofLocations)
+
+    local teleportSection = TeleportTab:Section({ Text = "Players", Side = "Right" })
+    local function TriggerSeat()
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+    for _, obj in pairs(workspace:GetDescendants()) do
+    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+    obj:Sit(humanoid)
+    return
+    end
+    end
+    end
+    end
+    local function teleportTo(position)
+    TriggerSeat()
+    wait(1)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+    player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+    end
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+    humanoid.Sit = false
+    end
+    end
+    local function findPlayer(input)
+    input = input:lower()
+    for _, targetPlayer in pairs(Players:GetPlayers()) do
+    if targetPlayer.Name:lower():sub(1, #input) == input or targetPlayer.DisplayName:lower():sub(1, #input) == input then
+    return targetPlayer
+    end
+    end
+    return nil
+    end
+    local playerName = ""
+    teleportSection:Input({
+    Text = "Enter Player Name",
+    Placeholder = "Player Name",
+    Callback = function(value)
+    playerName = value
+    end
+    })
+    teleportSection:Button({
+    Text = "Teleport to Player",
+    Callback = function()
+    local targetPlayer = findPlayer(playerName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    teleportTo(targetPlayer.Character.HumanoidRootPart.Position)
+    end
+    end
+    })
 
 --
 -- Shop --
