@@ -1485,7 +1485,7 @@
     end
 	})
 
-local moneydropSection = recoveryTab:Section({ Text = "Bank Options" })
+local moneydropSection = recoveryTab:Section({ Text = "Money Drop", Side = "Right" })
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
