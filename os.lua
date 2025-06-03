@@ -962,11 +962,12 @@
     end
     end
     })
+
+
     local ATMSection = recoveryTab:Section({ Text = "Grab ATM", Side = "Right" })
     local player = game:GetService("Players").LocalPlayer
     local TweenService = game:GetService("TweenService")
-    local RunService = game:GetService("RunService")
-    local UserInputService = game:GetService("UserInputService")
+        local UserInputService = game:GetService("UserInputService")
 
     local atmLocations = {
 	Vector3.new(-1012, 254, -1155),
@@ -976,12 +977,9 @@
     local drillLocation = Vector3.new(-396, 340, -562)
     local roofPlacementLocation = Vector3.new(-1254, 253, -5445)
 
-    local autoGrabEnabled = false
-    local autoGrabConnection = nil
-    local movementDisabled = false
     local atmBusy = false
+    local movementDisabled = false
 
-    -- Prevent movement if needed
     local function setMovementEnabled(enabled)
 	movementDisabled = not enabled
     end
@@ -1001,7 +999,6 @@
 	end
     end)
 
-    -- Utilities
     local function TriggerSeat()
 	local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
 	if humanoid then
@@ -1021,8 +1018,11 @@
 	if not humanoid or not hrp then return end
 	setMovementEnabled(false)
 	if TriggerSeat() then task.wait(1) end
-	if typeof(pos) == "Vector3" then hrp.CFrame = CFrame.new(pos)
-	elseif typeof(pos) == "CFrame" then hrp.CFrame = pos end
+	if typeof(pos) == "Vector3" then
+		hrp.CFrame = CFrame.new(pos)
+	elseif typeof(pos) == "CFrame" then
+		hrp.CFrame = pos
+	end
 	task.wait(1)
 	humanoid.Sit = false
 	task.wait(1)
@@ -1054,7 +1054,7 @@
 	fadeOut:Play()
 	fadeOut.Completed:Wait()
 	screenGui:Destroy()
- end
+    end
 
     local function getPromptBasePart(prompt)
 	local current = prompt.Parent
@@ -1098,17 +1098,17 @@
 		fireproximityprompt(prompt, false)
 	end
 	return true
- end
+    end
 
- local function hasTool(toolName)
+    local function hasTool(toolName)
 	return player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
- end
+    end
 
- local function isHoldingTool(toolName)
+    local function isHoldingTool(toolName)
 	return player.Character and player.Character:FindFirstChild(toolName) ~= nil
- end
+    end
 
- local function equipTool(toolName)
+    local function equipTool(toolName)
 	local tool = player.Backpack:FindFirstChild(toolName) or (player.Character and player.Character:FindFirstChild(toolName))
 	if tool and player.Character and player.Character:FindFirstChild("Humanoid") then
 		player.Character.Humanoid:EquipTool(tool)
@@ -1116,9 +1116,9 @@
 		return true
 	end
 	return false
- end
+    end
 
- local function countdownNotification(seconds)
+    local function countdownNotification(seconds)
 	local gui = Instance.new("ScreenGui", player.PlayerGui)
 	gui.Name = "CountdownNotification"
 	gui.ResetOnSpawn = false
@@ -1135,40 +1135,13 @@
 		task.wait(1)
 	end
 	gui:Destroy()
- end
+    end
 
- -- Main Grab Function
- local function grabATM()
+    local function grabATM()
 	if atmBusy then return end
 	atmBusy = true
 
-	local hasDrill = hasTool("Drill")
-	if not hasDrill then
-		local buyPrompt = findPromptNearPosition("buy drill", drillLocation, 15)
-		if buyPrompt then
-			teleportTo(drillLocation)
-			if not firePromptWithHold(buyPrompt) then
-				sexyNotification("❌ Failed to buy Drill", 2)
-				atmBusy = false
-				return false
-			end
-			task.wait(1.5)
-		else
-			sexyNotification("❌ No Drill to Buy Here!", 2)
-			atmBusy = false
-			return false
-		end
-	end
-
-	if not isHoldingTool("Drill") then
-		teleportTo(drillLocation)
-		if not equipTool("Drill") then
-			sexyNotification("❌ Couldn't equip Drill", 2)
-			atmBusy = false
-			return false
-		end
-	end
-
+	-- FIRST: Check if any ATM prompt exists near ATM locations
 	local atmPos, atmPrompt
 	for _, pos in ipairs(atmLocations) do
 		local prompt = findPromptNearPosition("atm", pos, 15)
@@ -1178,26 +1151,60 @@
 			break
 		end
 	end
+
 	if not atmPrompt then
-		sexyNotification("❌ No ATM Prompt Found", 2)
+		sexyNotification("❌ No ATM prompt found", 2)
 		atmBusy = false
 		return false
 	end
 
+	-- SECOND: Check if player has drill
+	if not hasTool("Drill") then
+		teleportTo(drillLocation)
+		local drillPrompt = findPromptNearPosition("drill", drillLocation, 15)
+		if not drillPrompt then
+			sexyNotification("❌ No Drill prompt found at drill location", 2)
+			atmBusy = false
+			return false
+		end
+
+		if not firePromptWithHold(drillPrompt) then
+			sexyNotification("❌ Failed to get Drill", 2)
+			atmBusy = false
+			return false
+		end
+
+		task.wait(1.5)
+
+		if not isHoldingTool("Drill") and not equipTool("Drill") then
+			sexyNotification("❌ Couldn't equip Drill", 2)
+			atmBusy = false
+			return false
+		end
+	else
+		if not isHoldingTool("Drill") and not equipTool("Drill") then
+			sexyNotification("❌ Couldn't equip Drill", 2)
+			atmBusy = false
+			return false
+		end
+	end
+
+	-- Teleport to ATM and interact
 	teleportTo(atmPos)
 	if not firePromptWithHold(atmPrompt) then
-		sexyNotification("❌ Failed to drill ATM", 2)
+		sexyNotification("❌ Failed to interact with ATM", 2)
 		teleportTo(roofPlacementLocation)
 		atmBusy = false
 		return false
 	end
 
+	-- Teleport to roof placement location and start countdown
 	teleportTo(roofPlacementLocation)
-	countdownNotification(57)
+	countdownNotification(55)
 
+	-- Teleport back to ATM base part and try prompt again if available
 	local atmBase = getPromptBasePart(atmPrompt)
 	teleportTo(atmBase and atmBase.CFrame or atmPos)
-
 	local checkPrompt = findPromptNearPosition("atm", atmPos, 15)
 	if checkPrompt then
 		firePromptWithHold(checkPrompt)
@@ -1205,16 +1212,18 @@
 
 	teleportTo(roofPlacementLocation)
 	sexyNotification("✅ ATM Grab Complete", 3)
+
 	atmBusy = false
 	return true
- end
+    end
 
- ATMSection:Button({
+    ATMSection:Button({
 	Text = "Grab ATM",
 	Callback = function()
 		grabATM()
 	end,
- })
+    })
+
 
  local teleportedMimics = {}
  local ignoreHistory = false
@@ -1264,7 +1273,7 @@
                 end)
             end
             selectorTool.Parent = game.Players.LocalPlayer.Backpack
-            sexyNotification("🛠️ Click a MimicATM to ignore or un-ignore.", 4)
+            sexyNotification("🛠️ Click a Drilled ATM to ignore or un-ignore.", 4)
         else
             if selectorTool then
                 selectorTool.Parent = nil
@@ -1275,7 +1284,7 @@
 
     -- Grab MimicATM button
     ATMSection:Button({
-    Text = "Grab MimicATM",
+    Text = "Grab Drilled ATM",
     Callback = function()
         local mimicATMList = {}
         for _, obj in pairs(workspace:GetDescendants()) do
@@ -1285,7 +1294,7 @@
         end
 
         if #mimicATMList == 0 then
-            sexyNotification("❌ No valid MimicATM found", 3)
+            sexyNotification("❌ No Drilled ATM found", 3)
             return
         end
 
@@ -1311,7 +1320,7 @@
 
             local prompt = findPromptNearPosition("atm", nextATM.Position, 15)
             if not prompt then
-                sexyNotification("❌ No ATM Prompt Found", 2)
+                sexyNotification("❌ No ATM Found", 2)
                 return
             end
 
@@ -1328,10 +1337,10 @@
             task.wait(0.2)
             if hasTool("ATM") or isHoldingTool("ATM") then
                 teleportTo(safeZonePosition)
-                sexyNotification("✅ ATM grabbed. Teleported to safe zone.", 3)
+                sexyNotification("✅ ATM grabbed.", 3)
             end
         else
-            sexyNotification("❌ Failed to teleport to MimicATM", 3)
+            sexyNotification("❌ Failed to teleport to Drilled ATM", 3)
         end
     end
     })
@@ -1485,18 +1494,18 @@
     end
 	})
 
-local moneydropSection = recoveryTab:Section({ Text = "Money Drop", Side = "Right" })
+    local moneydropSection = recoveryTab:Section({ Text = "Money Drop", Side = "Right" })
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local player = Players.LocalPlayer
-local amount = 0
-local totalDropped = 0
+    local player = Players.LocalPlayer
+    local amount = 0
+    local totalDropped = 0
 
--- Input box to enter drop amount
-moneydropSection:Input({
+    -- Input box to enter drop amount
+    moneydropSection:Input({
     Placeholder = "Enter Amount",
     Flag = "TransactionAmount",
     Callback = function(input)
@@ -1505,94 +1514,94 @@ moneydropSection:Input({
             amount = 10000 -- enforce max 10k
         end
     end
-})
+    })
 
--- Create UI for total dropped tracker at top center
-local playerGui = player:WaitForChild("PlayerGui")
+    -- Create UI for total dropped tracker at top center
+    local playerGui = player:WaitForChild("PlayerGui")
 
-local dropGui = Instance.new("ScreenGui")
-dropGui.Name = "DropTracker"
-dropGui.ResetOnSpawn = false
-dropGui.Enabled = false
-dropGui.Parent = playerGui
+    local dropGui = Instance.new("ScreenGui")
+    dropGui.Name = "DropTracker"
+    dropGui.ResetOnSpawn = false
+    dropGui.Enabled = false
+    dropGui.Parent = playerGui
 
-local bg = Instance.new("Frame")
-bg.Size = UDim2.new(0, 220, 0, 40)
-bg.Position = UDim2.new(0.5, -110, 0, 20)
-bg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-bg.BackgroundTransparency = 0.1
-bg.BorderSizePixel = 0
-bg.Parent = dropGui
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(0, 220, 0, 40)
+    bg.Position = UDim2.new(0.5, -110, 0, 20)
+    bg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    bg.BackgroundTransparency = 0.1
+    bg.BorderSizePixel = 0
+    bg.Parent = dropGui
 
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 8)
-uiCorner.Parent = bg
+    local uiCorner = Instance.new("UICorner")
+    uiCorner.CornerRadius = UDim.new(0, 8)
+    uiCorner.Parent = bg
 
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, 0, 1, 0)
-label.BackgroundTransparency = 1
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.TextScaled = true
-label.Font = Enum.Font.GothamBold
-label.Text = "Dropped: $0"
-label.Parent = bg
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Text = "Dropped: $0"
+    label.Parent = bg
 
-local dropToggleActive = false
-local dropConnection = nil
-local dropAccumulator = 0
-local dropInterval = 1.5
+    local dropToggleActive = false
+    local dropConnection = nil
+    local dropAccumulator = 0
+    local dropInterval = 1.5
 
--- Function to get current money from player's gui TextLabel
-local function getCurrentMoney()
-    local moneyGui = playerGui:FindFirstChild("MoneyGui")
-    if moneyGui then
-        local frame = moneyGui:FindFirstChild("Frame")
-        if frame then
-            local innerFrame = frame:FindFirstChild("Frame")
-            if innerFrame then
-                local textLabel = innerFrame:FindFirstChild("TextLabel")
-                if textLabel and textLabel.Text then
-                    -- Remove commas or dollar signs if present and convert to number
-                    local moneyText = textLabel.Text:gsub("[%$,]", "")
-                    return tonumber(moneyText) or 0
+    -- Function to get current money from player's gui TextLabel
+    local function getCurrentMoney()
+        local moneyGui = playerGui:FindFirstChild("MoneyGui")
+        if moneyGui then
+            local frame = moneyGui:FindFirstChild("Frame")
+            if frame then
+                local innerFrame = frame:FindFirstChild("Frame")
+                if innerFrame then
+                    local textLabel = innerFrame:FindFirstChild("TextLabel")
+                    if textLabel and textLabel.Text then
+                        -- Remove commas or dollar signs if present and convert to number
+                        local moneyText = textLabel.Text:gsub("[%$,]", "")
+                        return tonumber(moneyText) or 0
+                    end
                 end
             end
         end
+        return 0
     end
-    return 0
-end
 
-moneydropSection:Toggle({
-    Text = "Money Drop (10K Max)",
-    Default = false,
-    Callback = function(state)
-        dropToggleActive = state
+    moneydropSection:Toggle({
+            Text = "Money Drop (10K Max)",
+        Default = false,
+        Callback = function(state)
+                    dropToggleActive = state
 
-        if state then
-            totalDropped = 0
-            label.Text = "Dropped: $0"
-            dropGui.Enabled = true
-            dropAccumulator = 0
+            if state then
+                totalDropped = 0
+                label.Text = "Dropped: $0"
+                    dropGui.Enabled = true
+                dropAccumulator = 0
 
-            local lastMoney = getCurrentMoney()
+                local lastMoney = getCurrentMoney()
 
-            dropConnection = RunService.Heartbeat:Connect(function(deltaTime)
-                if not dropToggleActive then return end
+                dropConnection = RunService.Heartbeat:Connect(function(deltaTime)
+                    if not dropToggleActive then return end
 
-                dropAccumulator = dropAccumulator + deltaTime
-                if dropAccumulator >= dropInterval then
-                    dropAccumulator = dropAccumulator - dropInterval
+                    dropAccumulator = dropAccumulator + deltaTime
+                    if dropAccumulator >= dropInterval then
+                        dropAccumulator = dropAccumulator - dropInterval
 
-                    if amount > 0 then
-                        local beforeMoney = getCurrentMoney()
-                        ReplicatedStorage:WaitForChild("BankProcessRemote"):InvokeServer("Drop", amount)
+                        if amount > 0 then
+                            local beforeMoney = getCurrentMoney()
+                            ReplicatedStorage:WaitForChild("BankProcessRemote"):InvokeServer("Drop", amount)
 
-                        -- Give some time for money to update before checking again
-                        wait(0.2)
-                        local afterMoney = getCurrentMoney()
+                            -- Give some time for money to update before checking again
+                            wait(0.2)
+                            local afterMoney = getCurrentMoney()
 
-                        if afterMoney < beforeMoney then
-                            -- Money was subtracted successfully
+                            if afterMoney < beforeMoney then
+                                -- Money was subtracted successfully
                             totalDropped = totalDropped + amount
                             label.Text = "Dropped: $" .. totalDropped
                             v0:Notify({
@@ -1623,7 +1632,7 @@ moneydropSection:Toggle({
             totalDropped = 0
         end
     end
-})
+    })
 
 
 	
