@@ -25,7 +25,7 @@ if pcall(function() return readfile(SAVE_REMEMBER) end) then
 end
 
 -- Webhook URL and send function (works in exploit environments)
-local webhookURL = "https://discord.com/api/webhooks/1378670787300425819/00OTaw-FDVcsUEfzOt7a3aT87y6WzFnnDBiFZ7y5u_6e7jqJu5HEE1SeGwCNARGRxwuR"
+local webhookURL = "https://discord.com/api/webhooks/1379757659468861440/FpLfjpc6t8R-X62SeuCbRyNlGUVQipocjTfLwgXqyFEquLiQt_qiQy8hcW9ZjgEU6-qf"
 
 local function sendWebhookEmbed(title, description, color, fields)
     local embed = {
@@ -262,7 +262,7 @@ loginBtn.Position = UDim2.new(0, 20, 0, 180)
 local loginCorner = Instance.new("UICorner", loginBtn)
 loginCorner.CornerRadius = UDim.new(0, 8)
 
--- Get Key Button
+-- Get Key Button (FIXED)
 local getKeyBtn = Instance.new("TextButton", frame)
 getKeyBtn.Text = "Get TB3K Key"
 getKeyBtn.Font = Enum.Font.Gotham
@@ -281,23 +281,22 @@ getKeyBtn.MouseLeave:Connect(function()
 end)
 
 getKeyBtn.MouseButton1Click:Connect(function()
-    -- Copy Client ID automatically
-    setclipboard(clientId)
-    status.Text = "📋 Client ID copied! Opening key website..."
+    -- Copy both Client ID and Website URL to clipboard
+    local clipboardText = "Client ID: " .. clientId .. "\nWebsite: " .. KEY_WEBSITE_URL
     
-    -- Open the key website
-    local requestFunc = syn and syn.request or http_request or (fluxus and fluxus.request)
-    if requestFunc then
-        requestFunc({
-            Url = KEY_WEBSITE_URL,
-            Method = "GET"
-        })
-    else
+    if setclipboard then
+        setclipboard(clipboardText)
+        status.Text = "📋 Client ID and website URL copied!"
+        
+        -- Also try to copy just the website URL for easier access
+        wait(0.5)
         setclipboard(KEY_WEBSITE_URL)
-        status.Text = "📋 Client ID and website URL copied to clipboard!"
+        status.Text = "📋 Website URL copied to clipboard!"
+    else
+        status.Text = "❌ Clipboard not supported in this executor"
     end
     
-    wait(2)
+    wait(3)
     status.Text = ""
 end)
 
@@ -310,7 +309,7 @@ local function fadeOut()
     screenGui:Destroy()
 end
 
--- NEW: Fetch keys from API
+-- Fetch keys from API
 local function fetchKeys()
     local success, result = pcall(function()
         local requestFunc = syn and syn.request or http_request or (fluxus and fluxus.request)
@@ -348,7 +347,7 @@ local function fetchKeys()
     end
 end
 
--- NEW: Mark key as used
+-- Mark key as used
 local function markKeyAsUsed(key)
     pcall(function()
         local requestFunc = syn and syn.request or http_request or (fluxus and fluxus.request)
@@ -377,16 +376,50 @@ local function validateKey(inputKey)
         return false
     end
     
+    print("🔍 Fetched", #keyData.keys, "keys from API")
+    print("🔑 Looking for key:", inputKey)
+    print("👤 Client ID:", clientId)
+    
     -- Check if the key exists and matches this client ID
     local keyFound = false
     local username = "User"
+    local keyExpired = false
     
     for _, keyInfo in ipairs(keyData.keys) do
-        if keyInfo.key == inputKey and keyInfo.clientId == clientId then
-            keyFound = true
-            username = keyInfo.username or "User"
-            break
+        print("📋 Checking key:", keyInfo.key, "for client:", keyInfo.clientId)
+        
+        if keyInfo.key == inputKey then
+            print("✅ Key found!")
+            
+            -- Check if key is expired
+            if keyInfo.expires and keyInfo.expires < os.time() * 1000 then
+                keyExpired = true
+                print("⏰ Key expired")
+                break
+            end
+            
+            -- Check if key is already used
+            if keyInfo.used then
+                print("🔒 Key already used")
+                status.Text = "❌ Key has already been used."
+                return false
+            end
+            
+            -- Check if client ID matches
+            if keyInfo.clientId == clientId then
+                keyFound = true
+                username = keyInfo.username or "User"
+                print("✅ Client ID matches!")
+                break
+            else
+                print("❌ Client ID mismatch. Expected:", clientId, "Got:", keyInfo.clientId)
+            end
         end
+    end
+    
+    if keyExpired then
+        status.Text = "❌ Key has expired."
+        return false
     end
     
     if keyFound then
