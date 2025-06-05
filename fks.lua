@@ -7,8 +7,8 @@ local player = Players.LocalPlayer
 local clientId = Analytics:GetClientId()
 
 -- Updated URLs for the new key system
-local KEY_API_URL = "https://tb3keygen.vercel.app/api/keys"
-local KEY_WEBSITE_URL = "https://tb3keygen.vercel.app/"
+local KEY_API_URL = "https://tb3kkeygen.vercel.app/api/keys"
+local KEY_WEBSITE_URL = "https://tb3kkeygen.vercel.app/"
 local SCRIPT_URL = "https://raw.githubusercontent.com/RevampedCity/NiMonkey/refs/heads/main/os.lua"
 local SAVE_FILE = "keydata.txt"
 local SAVE_REMEMBER = "rememberme.txt"
