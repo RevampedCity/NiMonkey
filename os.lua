@@ -782,18 +782,19 @@
     })
 
 
--- Recovery 
-    local recoveryTab = Window:Tab({ Text = "Recovery" })
-    local DupeSection = recoveryTab:Section({ Text = "Dupe" })
 
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local StarterGui = game:GetService("StarterGui")
+-- Recovery Tab and Dupe Section
+local recoveryTab = Window:Tab({ Text = "Recovery" })
+local DupeSection = recoveryTab:Section({ Text = "Dupe" })
 
-    local keepGunsEnabled = false
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 
-        local excludedItems = {
+local keepGunsEnabled = false
+
+local excludedItems = {
     "Phone", "Fist", "Car Keys", "Gun Permit",
     ".UziMag", ".Bullets", "5.56", "7.62", ".9mm", 
     ".Extended", ".FNMag", ".MacMag", ".TecMag", ".Drum",
@@ -805,13 +806,13 @@
     "BluGloves", "WhiteGloves", "BlackGloves",
     "PinkCamoGloves", "RedCamoGloves", "BluCamoGloves",
     "Water", "RawChicken"
-        }
+}
 
-    local function normalize(str)
+local function normalize(str)
     return str:lower():gsub("%W", "")
-    end
+end
 
-    local function isExcluded(toolName)
+local function isExcluded(toolName)
     local normTool = normalize(toolName)
     for _, excluded in ipairs(excludedItems) do
         if normalize(excluded) == normTool then
@@ -819,35 +820,30 @@
         end
     end
     return false
-    end
+end
 
-    local ListWeaponRemote = ReplicatedStorage:WaitForChild("ListWeaponRemote")
+local ListWeaponRemote = ReplicatedStorage:WaitForChild("ListWeaponRemote")
 
-    local function sellItem(itemName)
+local function sellItem(itemName)
     local args = {
         [1] = itemName,
         [2] = 999999
     }
     ListWeaponRemote:FireServer(unpack(args))
-    end
+end
 
-    local function startSellingGuns()
-    task.spawn(function()
-        repeat
-            local soldSomething = false
-            for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
-                if item:IsA("Tool") and not isExcluded(item.Name) then
-                    sellItem(item.Name)
-                    soldSomething = true
-                    task.wait(3.3)
-                end
-            end
-            task.wait(0.1)
-        until not soldSomething
-    end)
-    end
+local cachedGuns = {}
 
-    local function showNotification(message)
+local function cacheGuns()
+    cachedGuns = {}
+    for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+        if item:IsA("Tool") and not isExcluded(item.Name) then
+            table.insert(cachedGuns, item.Name)
+        end
+    end
+end
+
+local function showNotification(message)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
             Title = "Revamped.City",
@@ -855,54 +851,54 @@
             Duration = 5
         })
     end)
-    end
+end
 
-    local function onDeath()
-    wait(0)
+local function startSellingGuns()
+    task.spawn(function()
+        if #cachedGuns == 0 then
+            showNotification("No guns found to sell.")
+            return
+        end
+        for _, gunName in ipairs(cachedGuns) do
+            sellItem(gunName)
+            task.wait(3.3)
+        end
+        showNotification("Finished selling guns.")
+        keepGunsEnabled = false
+    end)
+end
+
+local function onDeath()
+    wait(0.1) -- small delay for death event to settle
     if keepGunsEnabled then
+        cacheGuns()
         startSellingGuns()
     end
-    end
+end
 
-    local function onRespawn()
-    if keepGunsEnabled then
-        keepGunsEnabled = false
-        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-        if playerGui then
-            local marketGui = playerGui:FindFirstChild("Bronx Market 2")
-            if marketGui then
-                marketGui.Enabled = true
-                showNotification("Please Select Your Guns")
-            end
-        end
-    end
-    end
-
-    LocalPlayer.CharacterAdded:Connect(function(character)
+LocalPlayer.CharacterAdded:Connect(function(character)
     local humanoid = character:WaitForChild("Humanoid", 5)
     if humanoid then
         humanoid.Died:Connect(onDeath)
     end
-    onRespawn()
-    end)
+end)
 
-    if LocalPlayer.Character then
+if LocalPlayer.Character then
     local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
     if humanoid then
         humanoid.Died:Connect(onDeath)
     end
-    end
+end
 
-    local function setSpawn()
+local function setSpawn()
     local character = LocalPlayer.Character
     if not character then return end
-
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     local humanoid = character:FindFirstChild("Humanoid")
     if not humanoidRootPart or not humanoid then return end
 
     local lastPosition = humanoidRootPart.CFrame
-    humanoid.Health = 0
+    humanoid.Health = 0 -- kill player to respawn
 
     LocalPlayer.CharacterAdded:Wait()
     local newCharacter = LocalPlayer.Character
@@ -911,11 +907,10 @@
     if lastPosition then
         newRoot.CFrame = lastPosition
     end
-    end
+end
 
-    -- Your button
-    DupeSection:Button({
-    Text = "Dupe Inventory",
+DupeSection:Button({
+    Text = "Market Dupe",
     Callback = function()
         if not keepGunsEnabled then
             keepGunsEnabled = true
@@ -925,7 +920,7 @@
             showNotification("Already enabled! It will reset on next respawn.")
         end
     end
-    })
+})
 
 
     local MoneySection = recoveryTab:Section({ Text = "Max Money", Side = "Right" })
