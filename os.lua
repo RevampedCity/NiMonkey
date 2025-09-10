@@ -970,7 +970,7 @@ DupeSection:Button({
 	Vector3.new(-397, 254, -1108),
     }
     local drillLocation = Vector3.new(-396, 340, -562)
-    local roofPlacementLocation = Vector3.new(-1254, 253, -5445)
+    local roofPlacementLocation = Vector3.new(1702, 253, 5852)
 
     local atmBusy = false
     local movementDisabled = false
