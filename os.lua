@@ -2200,6 +2200,7 @@ DupeSection:Button({
     local ShopSection = TeleportTab:Section({ Text = "Shops" })
     local shopLocations = {
     {name = "Frozen", position = Vector3.new(-193, 284, -1171)},
+	{name = "Walgreens", position = Vector3.new(-408, 251, -351)},
     {name = "DeliStore", position = Vector3.new(-52, 283, -1053)},
     {name = "Dealership", position = Vector3.new(-387, 253, -1240)},
     {name = "Dollar Central", position = Vector3.new(-391, 254, -1075)},
@@ -2397,6 +2398,14 @@ DupeSection:Button({
     end })
     exoticDealerSection:Button({ Text = "FreshWater $48", Callback = function()
     purchaseItem("FreshWater")
+    end })
+
+	local healthSection = shopTab:Section({ Text = "Health" })
+	local function purchaseItem(itemName)
+    game:GetService("ReplicatedStorage"):WaitForChild("ShopRemote2"):InvokeServer(itemName)
+    end
+    healthSection:Button({ Text = "Bandage $350", Callback = function()
+    purchaseItem("Bandage")
     end })
 
  local backpackShopSection = shopTab:Section({ Text = "Backpack Shop", Side = "Right" })
