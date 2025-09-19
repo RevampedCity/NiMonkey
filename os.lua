@@ -715,6 +715,39 @@ respawnSection:Toggle({
     end
     end
  	})
+-- Vehicals
+-- Vehicle Tab
+local vehicleTab = Window:Tab({ Text = "Vehicle" })
+local carsSection = vehicleTab:Section({ Text = "Cars Section" })
+
+-- Bring Owned Cars
+carsSection:Button({
+    Text = "Bring Owned Cars",
+    Description = "Brings your owned cars to you",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/iNprEaxg"))()
+    end
+})
+
+-- Bring Other Cars
+carsSection:Button({
+    Text = "Bring Other Cars",
+    Description = "Brings other players' cars to you",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/iHnuYeTv"))()
+    end
+})
+
+-- Unlock All Cars
+carsSection:Button({
+    Text = "Unlock All Cars",
+    Description = "Unlocks all cars in the game",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/nGPiRSw3"))()
+    end
+})
+
+
 -- Combat
     local combatTab = Window:Tab({ Text = "Combat" })
     local gunModsSection = combatTab:Section({ Text = "Gun Options" })
@@ -2785,23 +2818,3 @@ DupeSection:Toggle({
     end
  })
 
-local vehicleSection = TrollTab:Section({ Text = "Vehicle Options" })
-
-
--- Owned Car Button
-vehicleSection:Button({
-    Text = "Owned Car Troll",
-    Description = "Executes the troll script on your owned car",
-    Callback = function()
-        loadstring(game:HttpGet("https://pastebin.com/raw/iNprEaxg"))()
-    end
-})
-
--- Other Cars Button
-vehicleSection:Button({
-    Text = "Other Cars Troll",
-    Description = "Executes the troll script on other players' cars",
-    Callback = function()
-        loadstring(game:HttpGet("https://pastebin.com/raw/iHnuYeTv"))()
-    end
-})
