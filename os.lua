@@ -2788,109 +2788,20 @@ DupeSection:Toggle({
 local vehicleSection = TrollTab:Section({ Text = "Vehicle Options" })
 
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local civCars = workspace:FindFirstChild("CivCars")
-local carIndex = 1 -- keeps track of which car is next
-
--- Utility: get character + HRP
-local function getCharacterAndRootPart()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart")
-    return character, rootPart
-end
-
--- Function to bring and sit in a car if empty
-local function bringAndSitCar(car)
-    local character, rootPart = getCharacterAndRootPart()
-    local driveSeat = car:FindFirstChild("DriveSeat")
-    if not car or not driveSeat or not character then return false end
-
-    -- ✅ Skip if someone is already driving
-    if driveSeat.Occupant and driveSeat.Occupant.Parent ~= character then
-        return false
-    end
-
-    -- Ensure PrimaryPart
-    if not car.PrimaryPart then
-        car.PrimaryPart = car:FindFirstChildWhichIsA("BasePart")
-    end
-    if not car.PrimaryPart then return false end
-
-    local carSize = car:GetExtentsSize()
-    local forward = rootPart.CFrame.LookVector
-    local targetPos = rootPart.Position + forward * (carSize.Z / 2 + 5)
-    targetPos = Vector3.new(targetPos.X, rootPart.Position.Y + carSize.Y/2 + 0.2, targetPos.Z)
-    local targetCFrame = CFrame.new(targetPos, targetPos + forward)
-
-    -- Move car
-    car:PivotTo(targetCFrame)
-
-    -- Freeze/unfreeze to settle
-    for _, part in ipairs(car:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = true
-        end
-    end
-    task.wait(0.2)
-    for _, part in ipairs(car:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = false
-        end
-    end
-
-    -- Seat player
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        driveSeat:Sit(humanoid)
-        return true
-    end
-    return false
-end
-
--- 🚗 Bring Next Car
+-- Owned Car Button
 vehicleSection:Button({
-    Text = "Steal A Car",
-    Description = "Brings the next empty car in CivCars and sits you in it",
+    Text = "Owned Car Troll",
+    Description = "Executes the troll script on your owned car",
     Callback = function()
-        if not civCars then return end
-        local cars = civCars:GetChildren()
-        if #cars == 0 then return end
-
-        -- Cycle through until we find an empty car
-        local startIndex = carIndex
-        repeat
-            if carIndex > #cars then
-                carIndex = 1
-            end
-            local car = cars[carIndex]
-            if bringAndSitCar(car) then
-                carIndex = carIndex + 1
-                return
-            end
-            carIndex = carIndex + 1
-        until carIndex == startIndex
+        loadstring(game:HttpGet("https://pastebin.com/raw/iNprEaxg"))()
     end
 })
 
--- 🚙 Bring All Cars (only empty ones, 1 by 1)
+-- Other Cars Button
 vehicleSection:Button({
-    Text = "Attempt Bring All Cars",
-    Description = "Brings every empty car one by one and sits you in each before moving to the next",
+    Text = "Other Cars Troll",
+    Description = "Executes the troll script on other players' cars",
     Callback = function()
-        if not civCars then return end
-        for _, car in ipairs(civCars:GetChildren()) do
-            if car:FindFirstChild("DriveSeat") and (not car.DriveSeat.Occupant) then
-                local success = bringAndSitCar(car)
-                if success then
-                    -- Wait until seated before next
-                    local seat = car:FindFirstChild("DriveSeat")
-                    if seat then
-                        repeat task.wait(0.2) until seat.Occupant == LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    end
-                    task.wait(0.5) -- buffer
-                end
-            end
-        end
+        loadstring(game:HttpGet("https://pastebin.com/raw/iHnuYeTv"))()
     end
 })
