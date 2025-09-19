@@ -331,9 +331,39 @@
 	    end
         end
         })
+
+
+
+
 	    local respawnSection = playerTab:Section({ Text = "Respawn Options", Side = "Right" })
 
+-- Inside your Respawn Options section
+respawnSection:Toggle({
+    Text = "Faster Respawn",
+    Description = "Automatically respawns you when you die",
+    Default = false,
+    Callback = function(state)
+        getgenv().InstantRespawnEnabled = state
 
+        if state then
+            task.spawn(function()
+                while getgenv().InstantRespawnEnabled do
+                    local character = LocalPlayer.Character
+                    if character and character:FindFirstChild("Humanoid") then
+                        if character.Humanoid.Health <= 0 then
+                            task.wait(0.1)
+                            local respawnRemote = game:GetService("ReplicatedStorage"):FindFirstChild("RespawnRE")
+                            if respawnRemote then
+                                respawnRemote:FireServer()
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
     respawnSection:Toggle({
     Text = "Respawn Where Died",
     Default = false,
